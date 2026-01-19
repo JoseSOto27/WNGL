@@ -2,7 +2,7 @@ import BestSelling from "../Components/Home/BestSelling"
 import Hero from "../Components/Home/Hero"
 import OurSpecs from "../Components/Home/OurSpecs"
 // 1. Importamos el componente de promociones (ajusta la ruta si lo guardaste en otra carpeta)
-import WeeklyPromos from "../Components/Home/WeeklyPromos"
+import WeeklyPromos from "../Components/Home/WeeklyPromos";
 
 const Home = () => {
   return (
