@@ -14,7 +14,6 @@ const ProductCard = ({ product }) => {
 
   const productId = product.id;
 
-  // ⭐ Rating con color esmeralda Wingool
   const rating = product.rating?.length
     ? Math.round(
         product.rating.reduce((acc, curr) => acc + curr.rating, 0) /
@@ -41,75 +40,77 @@ const ProductCard = ({ product }) => {
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-4 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 group relative">
-      <Link to={`/product/${product.id}`} className="no-underline">
+    // Reduje el redondeo en móvil (rounded-3xl) para ganar espacio visual
+    <div className="bg-white rounded-[1.8rem] sm:rounded-[2.5rem] p-3 sm:p-4 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 group relative flex flex-col h-full">
+      <Link to={`/product/${product.id}`} className="no-underline flex-grow">
         
-        {/* BADGE DE OFERTA */}
+        {/* BADGE DE OFERTA - Más pequeño en móvil */}
         {hasOffer && (
-          <div className="absolute top-6 left-6 z-10 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
-            <Flame size={12} fill="currentColor" /> OFERTA
+          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 bg-red-500 text-white text-[8px] sm:text-[10px] font-black px-2 sm:px-3 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+            <Flame size={10} fill="currentColor" /> OFERTA
           </div>
         )}
 
-        {/* CONTENEDOR DE IMAGEN */}
-        <div className="bg-slate-50 rounded-[2rem] h-48 flex items-center justify-center overflow-hidden relative group-hover:bg-emerald-50 transition-colors">
+        {/* CONTENEDOR DE IMAGEN - Altura ajustable */}
+        <div className="bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] h-36 sm:h-48 flex items-center justify-center overflow-hidden relative group-hover:bg-emerald-50 transition-colors">
           <img
             src={product.images?.[0] || "/default-image.png"}
             alt={product.name}
-            className="h-32 w-auto object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500"
+            className="h-24 sm:h-32 w-auto object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500"
           />
         </div>
 
         {/* INFO DEL PRODUCTO */}
-        <div className="mt-4 px-2 space-y-2">
-          <div className="flex justify-between items-start">
-            <h3 className="text-sm font-black text-[#1a2e05] uppercase italic leading-none tracking-tighter max-w-[70%]">
+        <div className="mt-3 sm:mt-4 px-1 sm:px-2 space-y-2">
+          {/* Ajuste de dirección: en móviles muy pequeños el precio baja si el nombre es largo */}
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-0">
+            <h3 className="text-xs sm:text-sm font-black text-[#1a2e05] uppercase italic leading-tight tracking-tighter w-full sm:max-w-[70%]">
               {product.name}
             </h3>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               {hasOffer && (
-                <p className="text-[10px] text-slate-400 line-through font-bold">
-                  {currency}{precioOriginal.toFixed(2)}
+                <p className="text-[9px] sm:text-[10px] text-slate-400 line-through font-bold leading-none">
+                  {currency}{precioOriginal.toFixed(0)}
                 </p>
               )}
-              <p className="text-lg font-black text-[#1a2e05] leading-none italic">
-                {currency}{precioActual.toFixed(2)}
+              <p className="text-base sm:text-lg font-black text-[#1a2e05] leading-none italic">
+                {currency}{precioActual.toFixed(0)}
               </p>
             </div>
           </div>
 
-          {/* RATING Y CATEGORÍA (Simulada) */}
-          <div className="flex items-center justify-between">
+          {/* RATING Y CATEGORÍA */}
+          <div className="flex items-center justify-between pt-1">
             <div className="flex gap-0.5">
               {Array(5).fill("").map((_, index) => (
                 <StarIcon
                   key={index}
-                  size={12}
+                  size={10}
                   className="transition-colors"
                   fill={rating >= index + 1 ? "#10b981" : "#E2E8F0"}
                   stroke="none"
                 />
               ))}
             </div>
-            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md">
-              Best Seller
+            <span className="text-[8px] sm:text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded-md">
+              Top
             </span>
           </div>
         </div>
       </Link>
 
-      {/* BOTÓN DE ACCIÓN */}
-      <div className="mt-4 px-2 pb-2">
+      {/* BOTÓN DE ACCIÓN - Padding ajustado para dedos en móvil */}
+      <div className="mt-3 sm:mt-4 px-1 sm:px-2 pb-1 sm:pb-2">
         {!cart[productId] ? (
           <button
             onClick={handleAddToCart}
-            className="w-full bg-[#1a2e05] text-white py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-slate-200"
+            className="w-full bg-[#1a2e05] text-white py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.15em] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all active:scale-95 shadow-lg"
           >
-            <ShoppingCart size={14} strokeWidth={3} />
+            <ShoppingCart size={13} strokeWidth={3} />
             Agregar
           </button>
         ) : (
-          <div className="bg-slate-50 rounded-2xl p-1 border border-slate-100">
+          <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-1 border border-slate-100">
              <Counter productId={productId} />
           </div>
         )}
