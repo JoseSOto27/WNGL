@@ -93,7 +93,7 @@ const ProductCard = ({ product }) => {
               ))}
             </div>
             <span className="text-[8px] sm:text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded-md">
-              Top
+              Top Semanal
             </span>
           </div>
         </div>
