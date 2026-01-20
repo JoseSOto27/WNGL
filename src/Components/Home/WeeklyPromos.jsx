@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Flame, Star, Trophy, Beer, Zap, Utensils, Users, GlassWater } from "lucide-react";
 
 const WeeklyPromos = () => {
@@ -50,7 +51,8 @@ const WeeklyPromos = () => {
   const infinitePromos = [...promos, ...promos];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 my-12">
+    /* AGREGAMOS EL ID AQUÍ PARA QUE EL HERO LO ENCUENTRE */
+    <div id="WeeklyPromos" className="max-w-7xl mx-auto px-4 sm:px-8 my-12 scroll-mt-24">
       <div className="bg-[#1A2E05] py-12 rounded-[3rem] border-2 border-[#49B981]/20 overflow-hidden relative shadow-xl">
         
         <style>
@@ -98,7 +100,7 @@ const WeeklyPromos = () => {
 
                 <div className="space-y-1">
                   <h3 className="text-lg sm:text-xl font-black text-white uppercase italic leading-none tracking-tighter">
-                    {promo.titulo}
+                    {promo.dia === "DOMINGO" ? "DOMINGO ILIMITADO" : promo.titulo}
                   </h3>
                   <p className="text-[#49B981] font-black uppercase italic text-[9px] tracking-tight pt-3 border-t border-white/10 mt-3 h-10">
                     {promo.desc}
@@ -109,7 +111,6 @@ const WeeklyPromos = () => {
           </div>
         </div>
 
-        {/* BOTÓN FUNCIONAL DE LLAMADA DIRECTA */}
         <div className="text-center mt-10 relative z-10">
           <a 
             href="tel:+521234567890" 

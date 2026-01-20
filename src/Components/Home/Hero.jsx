@@ -5,6 +5,20 @@ import CategoriesMarquee from "../Common/CategoriesMarquee";
 const Hero = () => {
   const navigate = useNavigate();
 
+  // Función táctica para el scroll a promociones
+  const scrollToPromos = (e) => {
+    e.preventDefault();
+    const section = document.getElementById('WeeklyPromos');
+    
+    if (section) {
+      // Si la sección existe en esta página, desliza suavemente
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      // Si no existe, navega a la tienda
+      navigate("/shop");
+    }
+  };
+
   return (
     <div className="mx-4 sm:mx-10 overflow-hidden pt-4">
       <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto mt-8 mb-12">
@@ -79,8 +93,11 @@ const Hero = () => {
                 </p>
               </div>
               
-              <button onClick={() => navigate("/shop")} className="flex items-center gap-2 text-[#1a2e05] font-black text-xs mt-8 group-hover:gap-4 transition-all uppercase italic">
-                EXPLORAR MENU <ArrowRightIcon size={16} />
+              <button 
+                onClick={scrollToPromos} 
+                className="flex items-center gap-2 text-[#1a2e05] font-black text-xs mt-8 group-hover:gap-4 transition-all uppercase italic"
+              >
+                EXPLORAR PROMOS <ArrowRightIcon size={16} />
               </button>
             </div>
 
@@ -105,7 +122,11 @@ const Hero = () => {
                 Recibe el 5% de cashback en cada mordida.
               </p>
               
-              <button onClick={() => navigate("/shop")} className="flex items-center gap-2 text-white bg-[#1a2e05] px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic mt-8 hover:scale-105 transition-all shadow-lg">
+              {/* BOTÓN ACTUALIZADO PARA IR AL LOGIN */}
+              <button 
+                onClick={() => navigate("/admin")} 
+                className="flex items-center gap-2 text-white bg-[#1a2e05] px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic mt-8 hover:scale-105 transition-all shadow-lg"
+              >
                 REGISTRARME <ChevronRightIcon size={14} />
               </button>
             </div>

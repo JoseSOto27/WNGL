@@ -1,11 +1,13 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom"; // Importación necesaria
 import { fetchProducts } from "../../redux/productActions";
 import ProductCard from "../Common/ProductCard";
 import { Trophy, Flame, Loader2, AlertCircle } from "lucide-react";
 
 const BestSelling = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // Inicialización del hook
   const displayQuantity = 8;
 
   // Traemos los productos y el estado de carga
@@ -71,8 +73,10 @@ const BestSelling = () => {
             </p>
           </div>
 
+          {/* BOTÓN CORREGIDO PARA JSX/REACT ROUTER */}
           <button 
-            onClick={() => window.location.href = '/shop'}
+            type="button"
+            onClick={() => navigate('/shop')}
             className="group flex items-center gap-4 bg-slate-50 border-2 border-slate-100 p-2 pr-6 rounded-[2rem] hover:border-emerald-500 transition-all shadow-sm"
           >
             <div className="bg-[#1a2e05] text-white p-3 rounded-full group-hover:bg-emerald-600 transition-colors">

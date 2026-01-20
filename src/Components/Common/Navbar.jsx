@@ -182,7 +182,8 @@ const Navbar = () => {
           <div className="p-6 flex flex-col h-[calc(100%-88px)]">
             <nav className="space-y-2 flex-1">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 font-black uppercase italic text-slate-800 hover:bg-slate-50 rounded-2xl transition-colors">Inicio</Link>
-              <Link to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 font-black uppercase italic text-slate-800 hover:bg-slate-50 rounded-2xl transition-colors">Menú de Alitas</Link>
+              <Link to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 font-black uppercase italic text-slate-800 hover:bg-slate-50 rounded-2xl transition-colors">Menú
+              </Link>
               
               <div className="my-6 border-t border-slate-50 pt-6">
                 {session ? (

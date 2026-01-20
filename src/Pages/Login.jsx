@@ -33,7 +33,7 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen w-full flex bg-white overflow-hidden font-sans">
+    <div id="login" className="h-screen w-full flex bg-white overflow-hidden font-sans">
       
       {/* SECCIÓN IZQUIERDA: EL ESTADIO WINGOOL */}
       <div className="hidden lg:flex lg:w-3/5 bg-[#1a2e05] relative items-center justify-center p-12 overflow-hidden">
