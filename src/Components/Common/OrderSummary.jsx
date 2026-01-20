@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { initMercadoPago } from '@mercadopago/sdk-react';
 
 // INICIALIZACIÓN FUERA DEL COMPONENTE (Evita bloqueos de página)
-initMercadoPago('TEST-00bc7487-e997-4783-87a5-fbd28d663545', { locale: 'es-MX' });
+initMercadoPago('TEST-5bbf1105-37f9-4dcd-a4f5-2bcd9985c7ea', { locale: 'es-MX' });
 
 const OrderSummary = () => {
     const dispatch = useDispatch();
