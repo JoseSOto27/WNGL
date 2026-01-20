@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import Loading from "../Components/Common/Loading";
 import { supabase } from "../services/supabase"; 
 import { 
-  CheckCircle, XCircle, Clock, Package, Truck, 
-  Mail, Phone, MapPin, User, Star, Coins, Receipt, X 
+  CheckCircle, Clock, Package, Truck, 
+  Phone, MapPin, User, Star, X, ChevronRight, Zap, Trophy, Receipt,
+  Hash, Calendar, CreditCard, Printer
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -19,7 +20,6 @@ export default function PedidosTienda() {
   
   const currency = "$";
 
-  // 1. Obtener pedidos de la tabla pedidos_v2
   const obtenerPedidos = async () => {
     try {
       const { data, error } = await supabase
@@ -28,18 +28,15 @@ export default function PedidosTienda() {
         .order('fecha_pedido', { ascending: false });
 
       if (error) throw error;
-      
       calcularEstadisticas(data || []);
       setPedidos(data || []);
     } catch (error) {
-      console.error("Error al obtener pedidos:", error);
       toast.error("Error al conectar con la base de datos");
     } finally {
       setCargando(false);
     }
   };
 
-  // 2. Actualizar estado
   const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
     try {
       const { error } = await supabase
@@ -48,11 +45,10 @@ export default function PedidosTienda() {
         .eq('id', pedidoId);
 
       if (error) throw error;
-
       setPedidos((prev) =>
         prev.map((p) => p.id === pedidoId ? { ...p, estado: nuevoEstado } : p)
       );
-      toast.success(`Estado actualizado: ${nuevoEstado}`);
+      toast.success(`JUGADA ACTUALIZADA: ${nuevoEstado.toUpperCase()}`);
     } catch (error) {
       toast.error("Error al cambiar estado");
     }
@@ -68,21 +64,16 @@ export default function PedidosTienda() {
     });
   };
 
-  // 3. Función CRÍTICA: Abrir Modal con limpieza de datos JSON
   const abrirModal = (pedido) => {
+    if (!pedido) return;
     let productosValidados = [];
     try {
-      // Si productos es un string (JSON de texto), lo parseamos. Si ya es objeto, lo usamos.
-      if (typeof pedido.productos === 'string') {
-        productosValidados = JSON.parse(pedido.productos);
-      } else {
-        productosValidados = pedido.productos || [];
-      }
+      productosValidados = typeof pedido.productos === 'string' 
+        ? JSON.parse(pedido.productos) 
+        : (pedido.productos || []);
     } catch (e) {
-      console.error("Error al parsear productos:", e);
       productosValidados = [];
     }
-
     setPedidoSeleccionado({
       ...pedido,
       productos: Array.isArray(productosValidados) ? productosValidados : []
@@ -91,8 +82,8 @@ export default function PedidosTienda() {
   };
 
   const cerrarModal = () => {
-    setPedidoSeleccionado(null);
     setModalAbierto(false);
+    setPedidoSeleccionado(null);
   };
 
   useEffect(() => {
@@ -104,60 +95,79 @@ export default function PedidosTienda() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  const pedidosFiltrados = filtroEstado === "todos" 
-    ? pedidos 
-    : pedidos.filter(p => p.estado === filtroEstado);
-
   if (cargando) return <Loading />;
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-10 bg-slate-50 min-h-screen font-sans selection:bg-emerald-500 selection:text-white">
+      
+      {/* HEADER MVP SUTIL */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 border-b border-slate-200 pb-8">
         <div>
-          <h1 className="text-3xl font-black text-[#1a2e05] uppercase italic">Central de <span className="text-emerald-600">Pedidos</span></h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Dashboard Administrativo V2</p>
+          <div className="flex items-center gap-2 text-emerald-500 font-black text-[9px] uppercase tracking-[0.3em] mb-1 italic">
+             <Zap size={12} fill="currentColor" /> Centro de Operaciones
+          </div>
+          <h1 className="text-4xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-none">
+            CENTRAL DE <span className="text-emerald-500">PEDIDOS</span>
+          </h1>
+        </div>
+        
+        <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+           {['todos', 'pendiente', 'entregado'].map((f) => (
+             <button 
+              key={f}
+              onClick={() => setFiltroEstado(f)}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase italic tracking-widest transition-all ${filtroEstado === f ? 'bg-[#1a2e05] text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}
+             >
+               {f}
+             </button>
+           ))}
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <StatCard label="Total" val={estadisticas.total} color="slate" icon={<Package/>}/>
-        <StatCard label="Pendientes" val={estadisticas.pendientes} color="yellow" icon={<Clock/>}/>
-        <StatCard label="En Cocina" val={estadisticas.procesando} color="blue" icon={<Package/>}/>
-        <StatCard label="En Camino" val={estadisticas.enviados} color="purple" icon={<Truck/>}/>
-        <StatCard label="Entregados" val={estadisticas.entregados} color="green" icon={<CheckCircle/>}/>
+      {/* STATS REFINADAS */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+        <StatCard label="Total" val={estadisticas.total} color="slate" icon={<Receipt size={18}/>}/>
+        <StatCard label="Pendientes" val={estadisticas.pendientes} color="yellow" icon={<Clock size={18}/>}/>
+        <StatCard label="Cocina" val={estadisticas.procesando} color="blue" icon={<Zap size={18}/>}/>
+        <StatCard label="Reparto" val={estadisticas.enviados} color="purple" icon={<Truck size={18}/>}/>
+        <StatCard label="Éxito" val={estadisticas.entregados} color="green" icon={<Trophy size={18}/>}/>
       </div>
 
-      {/* Tabla de Pedidos */}
-      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
+      {/* TABLA DE PEDIDOS SUTIL */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
               <tr>
-                <th className="p-6">Orden</th>
-                <th className="p-6">Cliente</th>
-                <th className="p-6">Pago Final</th>
-                <th className="p-6">Estado</th>
-                <th className="p-6 text-right">Detalle</th>
+                <th className="px-8 py-5 italic">Ticket</th>
+                <th className="px-8 py-5 italic">Jugador / Cliente</th>
+                <th className="px-8 py-5 text-center italic">Importe</th>
+                <th className="px-8 py-5 text-center italic">Estado de Jugada</th>
+                <th className="px-8 py-5 text-right italic">Acción</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 text-xs font-medium">
-              {pedidosFiltrados.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => abrirModal(p)}>
-                  <td className="p-6 font-black italic text-slate-800">#{p.id.slice(-6).toUpperCase()}</td>
-                  <td className="p-6">
-                    <p className="font-black text-slate-800 uppercase">{p.cliente_nombre}</p>
-                    <p className="text-[10px] text-slate-400">{p.cliente_telefono}</p>
+            <tbody className="divide-y divide-slate-50">
+              {pedidos.filter(p => filtroEstado === 'todos' || p.estado === filtroEstado).map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50 transition-all cursor-pointer group" onClick={() => abrirModal(p)}>
+                  <td className="px-8 py-5">
+                    <span className="font-black italic text-[#1a2e05] text-xs bg-slate-100 px-3 py-1 rounded-lg">
+                      #{p.id?.slice(-6).toUpperCase()}
+                    </span>
                   </td>
-                  <td className="p-6">
-                    <p className="font-black text-[#1a2e05]">{currency}{parseFloat(p.total).toFixed(2)}</p>
-                    {p.puntos_usados > 0 && <span className="text-[9px] text-amber-600 font-black">CANJEÓ PUNTOS</span>}
+                  <td className="px-8 py-5">
+                    <p className="font-black text-[#1a2e05] uppercase italic text-xs tracking-tight">{p.cliente_nombre}</p>
+                    <p className="text-slate-400 text-[8px] font-bold mt-0.5 tracking-wider">{p.cliente_telefono}</p>
                   </td>
-                  <td className="p-6" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-[1000] text-xl text-[#1a2e05] italic tracking-tighter">
+                      {currency}{Number(p.total || 0).toFixed(0)}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-center" onClick={(e) => e.stopPropagation()}>
                     <select 
                       value={p.estado} 
                       onChange={(e) => actualizarEstadoPedido(p.id, e.target.value)}
-                      className={`text-[9px] font-black uppercase rounded-xl border-none px-3 py-2 focus:ring-0 ${getStatusColor(p.estado)}`}
+                      className={`text-[8px] font-black uppercase italic tracking-widest rounded-full border border-transparent px-4 py-2 cursor-pointer outline-none transition-all shadow-sm ${getStatusColor(p.estado)}`}
                     >
                       <option value="pendiente">Pendiente</option>
                       <option value="procesando">En Cocina</option>
@@ -165,8 +175,10 @@ export default function PedidosTienda() {
                       <option value="entregado">Entregado</option>
                     </select>
                   </td>
-                  <td className="p-6 text-right">
-                    <button className="bg-[#1a2e05] text-white p-2 rounded-xl"><ChevronRight size={14}/></button>
+                  <td className="px-8 py-5 text-right">
+                    <div className="inline-flex bg-slate-50 text-slate-300 group-hover:bg-[#1a2e05] group-hover:text-emerald-400 size-9 rounded-xl items-center justify-center transition-all">
+                      <ChevronRight size={18} strokeWidth={3} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -175,73 +187,95 @@ export default function PedidosTienda() {
         </div>
       </div>
 
-      {/* MODAL DETALLES (PROTEGIDO) */}
+      {/* MODAL DETALLES - TICKET CLEAN */}
       {modalAbierto && pedidoSeleccionado && (
-        <div className="fixed inset-0 bg-[#1a2e05]/50 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-[#1a2e05]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in duration-200">
             
-            {/* Cabecera */}
-            <div className="bg-[#1a2e05] p-6 text-white flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Orden #{pedidoSeleccionado?.id?.toString().slice(-8).toUpperCase()}</h2>
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{new Date(pedidoSeleccionado?.fecha_pedido).toLocaleString()}</p>
+            <div className="p-6 border-b border-dashed border-slate-100 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                 <div className="bg-[#1a2e05] p-2 rounded-xl text-emerald-500 shadow-lg shadow-emerald-900/20">
+                    <Receipt size={20} />
+                 </div>
+                 <div>
+                    <h2 className="text-lg font-[1000] italic uppercase tracking-tighter text-[#1a2e05]">
+                      TICKET <span className="text-emerald-600">#{(pedidoSeleccionado?.id || "").toString().slice(-6).toUpperCase()}</span>
+                    </h2>
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
+                      {new Date(pedidoSeleccionado?.fecha_pedido).toLocaleTimeString()}
+                    </p>
+                 </div>
               </div>
-              <button onClick={cerrarModal} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all"><X size={20}/></button>
+              <button onClick={cerrarModal} className="bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all">
+                <X size={18} strokeWidth={3}/>
+              </button>
             </div>
             
-            <div className="p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
               
-              {/* Info Cliente y Financiera */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-50 p-6 rounded-[2rem] space-y-4 border border-slate-100 text-slate-800">
-                  <DetailRow icon={<User size={14}/>} label="Cliente" val={pedidoSeleccionado?.cliente_nombre}/>
-                  <DetailRow icon={<Phone size={14}/>} label="Teléfono" val={pedidoSeleccionado?.cliente_telefono}/>
-                  <DetailRow icon={<MapPin size={14}/>} label="Dirección de entrega" val={pedidoSeleccionado?.direccion_entrega}/>
-                </div>
-
-                <div className="bg-slate-900 p-6 rounded-[2rem] text-white space-y-2 shadow-lg">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Resumen de Cuenta</p>
-                  <div className="flex justify-between text-xs opacity-60">
-                    <span>Subtotal + Envío:</span>
-                    <span>{currency}{(Number(pedidoSeleccionado?.total || 0) + Number((pedidoSeleccionado?.puntos_usados || 0) / 10)).toFixed(2)}</span>
-                  </div>
-                  {pedidoSeleccionado?.puntos_usados > 0 && (
-                    <div className="flex justify-between text-xs text-amber-400 font-black italic">
-                      <span>Descuento Wallet:</span>
-                      <span>-${(pedidoSeleccionado.puntos_usados / 10).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-2xl font-black border-t border-white/10 pt-2 mt-2 text-emerald-400">
-                    <span>TOTAL:</span>
-                    <span>{currency}{Number(pedidoSeleccionado?.total || 0).toFixed(2)}</span>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+                 <DetailRow icon={<User size={12}/>} label="Cliente" val={pedidoSeleccionado?.cliente_nombre}/>
+                 <DetailRow icon={<Phone size={12}/>} label="WhatsApp" val={pedidoSeleccionado?.cliente_telefono}/>
+                 <DetailRow icon={<MapPin size={12}/>} label="Ubicación" val={pedidoSeleccionado?.direccion_entrega}/>
               </div>
 
-              {/* Lista de Comanda */}
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2"><Package size={14}/> Comanda de Cocina</p>
+                <p className="text-[9px] font-black text-[#1a2e05] uppercase tracking-widest italic flex items-center gap-2 px-1">
+                   <Zap size={12} fill="currentColor" className="text-emerald-500"/> Comanda Técnica
+                </p>
+                
                 <div className="space-y-2">
                   {pedidoSeleccionado?.productos?.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <div className="flex items-center gap-4">
-                        <span className="bg-[#1a2e05] text-white w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black shadow-md">{item?.cantidad}</span>
-                        <span className="font-black text-xs text-slate-800 uppercase">{item?.nombre}</span>
-                      </div>
-                      <span className="font-black text-xs text-slate-600">{currency}{Number(item?.total || 0).toFixed(2)}</span>
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <span className="bg-[#1a2e05] text-emerald-400 size-7 flex items-center justify-center rounded-lg text-[10px] font-black italic">
+                            {item?.cantidad}
+                          </span>
+                          <div>
+                            <p className="font-black text-[11px] text-[#1a2e05] uppercase italic leading-none">{item?.nombre}</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {item?.extras?.length > 0 ? item.extras.map((ex, idx) => (
+                                <span key={idx} className="text-[7px] text-emerald-600 font-bold uppercase italic">+ {ex?.nombre}</span>
+                              )) : <span className="text-[7px] text-slate-300 font-bold uppercase italic">Clásico</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="font-black text-xs text-[#1a2e05] italic">${Number(item?.total).toFixed(0)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Footer Puntos */}
-              <div className="bg-emerald-50 p-4 rounded-3xl flex items-center justify-between border border-emerald-100">
-                <div className="flex items-center gap-2">
-                  <Star fill="#059669" className="text-emerald-600" size={16}/>
-                  <span className="text-[10px] font-black text-emerald-800 uppercase">Puntos otorgados:</span>
-                </div>
-                <span className="text-xl font-black text-emerald-700">+{pedidoSeleccionado?.puntos_generados || 0}</span>
+              <div className="border-t border-dashed border-slate-200 pt-5 space-y-2 px-2">
+                 <div className="flex justify-between text-[10px] font-bold text-slate-300 uppercase italic">
+                    <span>Subtotal + Envío</span>
+                    <span>{currency}{(Number(pedidoSeleccionado?.total || 0) + (pedidoSeleccionado?.puntos_usados ? pedidoSeleccionado.puntos_usados / 10 : 0)).toFixed(0)}</span>
+                 </div>
+                 {pedidoSeleccionado?.puntos_usados > 0 && (
+                   <div className="flex justify-between text-[10px] font-black text-amber-500 uppercase italic">
+                      <span>✨ Wallet Puntos</span>
+                      <span>-{currency}{(pedidoSeleccionado.puntos_usados / 10).toFixed(0)}</span>
+                   </div>
+                 )}
+                 <div className="flex justify-between items-end pt-2">
+                    <span className="text-xs font-black text-[#1a2e05] uppercase italic tracking-widest">TOTAL</span>
+                    <span className="text-4xl font-[1000] text-emerald-600 italic tracking-tighter leading-none">
+                      {currency}{Number(pedidoSeleccionado?.total || 0).toFixed(0)}
+                    </span>
+                 </div>
               </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <div className="flex-1 bg-[#1a2e05] p-4 rounded-2xl text-white flex flex-col justify-center relative overflow-hidden group">
+                   <Trophy size={40} className="absolute -right-2 -bottom-2 text-white/5 rotate-12" />
+                   <span className="text-[7px] font-black uppercase text-emerald-400 tracking-widest mb-1 italic">Recompensa MVP</span>
+                   <span className="text-xl font-[1000] italic leading-none">+{pedidoSeleccionado?.puntos_generados || 0} <span className="text-[10px]">PTS</span></span>
+                </div>
+                <div className="flex-1 bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center">
+                   <span className="text-[7px] font-black uppercase text-slate-300 tracking-widest mb-1 italic">Método Pago</span>
+                   <span className="text-xs font-black uppercase italic text-[#1a2e05]">{pedidoSeleccionado?.metodo_pago || "Efectivo"}</span>
+                </div>
             </div>
           </div>
         </div>
@@ -250,48 +284,43 @@ export default function PedidosTienda() {
   );
 }
 
-// COMPONENTES AUXILIARES
 function StatCard({ label, val, color, icon }) {
   const themes = {
-    slate: "bg-slate-100 text-slate-600",
-    yellow: "bg-yellow-100 text-yellow-600",
-    blue: "bg-blue-100 text-blue-600",
-    purple: "bg-purple-100 text-purple-600",
-    green: "bg-green-100 text-green-600"
+    slate: "bg-white text-slate-300 border-slate-100 shadow-sm",
+    yellow: "bg-amber-50 text-amber-500 border-amber-100",
+    blue: "bg-blue-50 text-blue-500 border-blue-100",
+    purple: "bg-purple-50 text-purple-500 border-purple-100",
+    green: "bg-emerald-50 text-emerald-500 border-emerald-100"
   };
   return (
-    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between shadow-sm">
-      <div>
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-        <p className="text-2xl font-black text-slate-800">{val}</p>
+    <div className={`p-6 rounded-[2rem] border transition-all hover:shadow-lg hover:-translate-y-0.5 ${themes[color]}`}>
+      <div className="flex justify-between items-start mb-3">
+        <p className="text-[8px] font-black uppercase tracking-widest italic opacity-60">{label}</p>
+        <div className="opacity-40">{icon}</div>
       </div>
-      <div className={`${themes[color]} p-3 rounded-2xl`}>{icon}</div>
+      <p className="text-3xl font-[1000] text-[#1a2e05] italic tracking-tighter leading-none">{val}</p>
     </div>
   );
 }
 
 function DetailRow({ icon, label, val }) {
   return (
-    <div className="flex gap-4 items-start">
-      <div className="bg-white p-2.5 rounded-2xl shadow-sm text-emerald-600 border border-slate-100">{icon}</div>
-      <div>
-        <p className="text-[9px] font-black text-slate-400 uppercase mb-1">{label}</p>
-        <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">{val || '---'}</p>
+    <div className="flex gap-3 items-center">
+      <div className="text-emerald-500 flex-shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">{label}</p>
+        <p className="text-[9px] font-black text-[#1a2e05] uppercase italic leading-tight truncate">{val || '---'}</p>
       </div>
     </div>
   );
 }
 
-function ChevronRight(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
-}
-
 const getStatusColor = (status) => {
   switch (status) {
-    case 'pendiente': return 'bg-yellow-100 text-yellow-700';
-    case 'procesando': return 'bg-blue-100 text-blue-700';
-    case 'enviado': return 'bg-purple-100 text-purple-700';
-    case 'entregado': return 'bg-green-100 text-green-700';
-    default: return 'bg-slate-100 text-slate-500';
+    case 'pendiente': return 'bg-amber-50 text-amber-600 border-amber-100';
+    case 'procesando': return 'bg-blue-50 text-blue-600 border-blue-100';
+    case 'enviado': return 'bg-purple-50 text-purple-600 border-purple-100';
+    case 'entregado': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    default: return 'bg-slate-50 text-slate-400 border-slate-100';
   }
 };

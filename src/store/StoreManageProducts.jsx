@@ -4,7 +4,7 @@ import Loading from "../Components/Common/Loading";
 import { supabase } from "../services/supabase";
 import { 
   Trash2, Pencil, Save, X, RefreshCcw, 
-  Package, ToggleLeft, ToggleRight, Search, Trophy, Star
+  Package, ToggleLeft, ToggleRight, Search, Trophy, Zap
 } from "lucide-react";
 
 const AdministrarProductosTienda = () => {
@@ -63,7 +63,7 @@ const AdministrarProductosTienda = () => {
       const { error } = await supabase.from("productos").update({ disponible: nuevoEstado }).eq("id", productoId);
       if (error) throw error;
       setProductos((prev) => prev.map((p) => p.id === productoId ? { ...p, enStock: nuevoEstado } : p));
-      toast.success("¡Disponibilidad actualizada!");
+      toast.success("¡Estado actualizado!");
     } catch (error) {
       toast.error("Error al actualizar disponibilidad");
     }
@@ -82,18 +82,21 @@ const AdministrarProductosTienda = () => {
 
   const cancelarEdicion = () => {
     setEditandoId(null);
-    setFormularioEdicion({ nombre: "", descripcion: "", precio_original: 0, precio_oferta: 0, imagen_url: "" });
   };
 
   const guardarEdicion = async () => {
     if (!editandoId) return;
     try {
       if (!formularioEdicion.nombre.trim()) return toast.error("El nombre es requerido");
+      const numPrecioOriginal = parseFloat(formularioEdicion.precio_original);
+      const numPrecioOferta = parseFloat(formularioEdicion.precio_oferta);
+      if (isNaN(numPrecioOriginal) || isNaN(numPrecioOferta)) return toast.error("Precios inválidos");
+
       const { error } = await supabase.from("productos").update({
           nombre: formularioEdicion.nombre,
           descripcion: formularioEdicion.descripcion,
-          precio_original: formularioEdicion.precio_original,
-          precio_oferta: formularioEdicion.precio_oferta,
+          precio_original: numPrecioOriginal,
+          precio_oferta: numPrecioOferta,
           imagen_url: formularioEdicion.imagen_url,
           fecha: new Date().toISOString(),
         }).eq("id", editandoId);
@@ -103,36 +106,30 @@ const AdministrarProductosTienda = () => {
                 ...p,
                 name: formularioEdicion.nombre,
                 description: formularioEdicion.descripcion,
-                mrp: parseFloat(formularioEdicion.precio_original),
-                price: parseFloat(formularioEdicion.precio_oferta),
+                mrp: numPrecioOriginal,
+                price: numPrecioOferta,
                 images: [formularioEdicion.imagen_url],
-                datosOriginales: { ...formularioEdicion },
+                datosOriginales: { ...formularioEdicion, precio_original: numPrecioOriginal, precio_oferta: numPrecioOferta },
               } : p));
-      toast.success("¡Producto actualizado exitosamente!");
+
+      toast.success("¡Jugada guardada!");
       cancelarEdicion();
-    } catch (error) {
-      toast.error("Error al actualizar: " + error.message);
-    }
+    } catch (error) { toast.error(error.message); }
   };
 
   const eliminarProducto = async (productoId) => {
-    if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
+    if (!window.confirm("¿Sacar de la alineación permanentemente?")) return;
     try {
       const { error } = await supabase.from("productos").delete().eq("id", productoId);
       if (error) throw error;
       setProductos((prev) => prev.filter((p) => p.id !== productoId));
-      toast.success("¡Producto eliminado!");
-    } catch (error) {
-      toast.error("Error al eliminar: " + error.message);
-    }
+      toast.success("Producto eliminado");
+    } catch (error) { toast.error(error.message); }
   };
 
   const manejarCambioFormulario = (e) => {
     const { name, value } = e.target;
-    setFormularioEdicion((prev) => ({
-      ...prev,
-      [name]: name.includes("precio") ? parseFloat(value) || 0 : value,
-    }));
+    setFormularioEdicion((prev) => ({ ...prev, [name]: value }));
   };
 
   useEffect(() => { obtenerProductos(); }, []);
@@ -140,171 +137,162 @@ const AdministrarProductosTienda = () => {
   if (cargando) return <Loading />;
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
+    <div className="p-4 md:p-10 bg-slate-50 min-h-screen font-sans selection:bg-emerald-500 selection:text-white">
       
-      {/* HEADER WINGOOL */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+      {/* HEADER MVP SUTIL */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 border-b border-slate-200 pb-8">
         <div>
-          <h1 className="text-4xl font-black text-[#1a2e05] uppercase italic tracking-tighter flex items-center gap-3">
-            <Trophy className="text-emerald-600" size={32} /> Administrar <span className="text-emerald-600">Plantilla</span>
+          <div className="flex items-center gap-2 text-emerald-500 font-black text-[9px] uppercase tracking-[0.3em] mb-1 italic">
+             <Zap size={12} fill="currentColor" /> Control de Plantilla
+          </div>
+          <h1 className="text-4xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-none">
+            ADMINISTRAR <span className="text-emerald-500">PRODUCTOS</span>
           </h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
-            Gestión total de inventario y precios de Wingool Company
-          </p>
         </div>
         
-        <div className="flex items-center gap-4">
-            <div className="bg-white px-6 py-3 rounded-2xl border-2 border-slate-100 flex items-center gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+            <div className="bg-white px-5 py-3 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
                 <div className="flex flex-col text-right">
-                    <span className="text-[9px] font-black text-slate-400 uppercase">Productos Activos</span>
-                    <span className="text-xl font-black text-[#1a2e05] italic">{productos.length}</span>
+                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Items Totales</span>
+                    <span className="text-2xl font-[1000] text-[#1a2e05] italic tracking-tighter leading-none">{productos.length}</span>
                 </div>
-                <Package className="text-emerald-500" size={24} />
+                <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl">
+                    <Package size={20} />
+                </div>
             </div>
-            <button onClick={obtenerProductos} className="bg-[#1a2e05] text-white p-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg active:scale-90">
-                <RefreshCcw size={20} className={cargando ? "animate-spin" : ""} />
+            <button 
+                onClick={obtenerProductos} 
+                className="bg-[#1a2e05] text-emerald-400 p-4 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-md active:scale-95 group border border-white/10"
+            >
+                <RefreshCcw size={22} className={cargando ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
             </button>
         </div>
       </div>
 
-      {/* TABLA DE PRODUCTOS ESTILO WINGOOL */}
-      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+      {/* TABLA REFINADA */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#1a2e05] text-emerald-400 uppercase text-[10px] font-black tracking-[0.2em]">
-                <th className="px-6 py-5 italic italic">Producto</th>
-                <th className="px-6 py-5 hidden md:table-cell italic">Descripción</th>
-                <th className="px-6 py-5 hidden md:table-cell italic text-center italic">Coste Base</th>
-                <th className="px-6 py-5 italic text-center italic">Precio Venta</th>
-                <th className="px-6 py-5 italic italic">Estado</th>
-                <th className="px-6 py-5 text-right italic italic">Acciones</th>
+            <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+              <tr>
+                <th className="px-8 py-5 italic">Producto</th>
+                <th className="px-8 py-5 hidden lg:table-cell italic text-center">MRP (Base)</th>
+                <th className="px-8 py-5 text-center italic">Precio MVP</th>
+                <th className="px-8 py-5 text-center italic">Estado</th>
+                <th className="px-8 py-5 text-right italic">Acciones</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50">
               {productos.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-2 opacity-30">
-                        <Search size={48} />
-                        <p className="font-black uppercase italic tracking-widest text-xs">Sin alineación registrada</p>
+                  <td colSpan="5" className="p-20 text-center">
+                    <div className="flex flex-col items-center gap-3 opacity-20">
+                        <Search size={48} strokeWidth={1} />
+                        <p className="font-black uppercase italic tracking-widest text-xs">Sin jugadores convocados</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 productos.map((producto) => (
-                  <tr key={producto.id} className="hover:bg-emerald-50/30 transition-colors group">
+                  <tr key={producto.id} className="hover:bg-slate-50/80 transition-all group">
                     {editandoId === producto.id ? (
-                      /* --- MODO EDICIÓN (INPUTS NEGROS) --- */
-                      <>
-                        <td className="px-6 py-4">
+                      /* --- MODO EDICIÓN SUTIL --- */
+                      <td colSpan="5" className="p-6 bg-emerald-50/30">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                           <input
-                            type="text"
                             name="nombre"
                             value={formularioEdicion.nombre}
                             onChange={manejarCambioFormulario}
-                            className="bg-slate-50 border-2 border-emerald-100 rounded-xl px-3 py-2 w-full text-sm font-black text-slate-900 outline-none focus:border-emerald-500 shadow-inner"
+                            placeholder="Nombre"
+                            className="bg-white border border-emerald-200 rounded-xl px-4 py-3 text-xs font-black text-[#1a2e05] uppercase italic outline-none shadow-sm focus:border-emerald-500"
                           />
-                        </td>
-                        <td className="px-6 py-4 hidden md:table-cell">
-                          <textarea
-                            name="descripcion"
-                            value={formularioEdicion.descripcion}
-                            onChange={manejarCambioFormulario}
-                            className="bg-slate-50 border-2 border-emerald-100 rounded-xl px-3 py-2 w-full text-sm font-bold text-slate-900 outline-none focus:border-emerald-500 shadow-inner"
-                            rows="2"
-                          />
-                        </td>
-                        <td className="px-6 py-4 hidden md:table-cell">
-                          <input
-                            type="number"
-                            name="precio_original"
-                            value={formularioEdicion.precio_original}
-                            onChange={manejarCambioFormulario}
-                            className="bg-slate-50 border-2 border-emerald-100 rounded-xl px-3 py-2 w-full text-sm font-black text-slate-900 text-center"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="number"
-                            name="precio_oferta"
-                            value={formularioEdicion.precio_oferta}
-                            onChange={manejarCambioFormulario}
-                            className="bg-emerald-50 border-2 border-emerald-200 rounded-xl px-3 py-2 w-full text-sm font-black text-emerald-700 text-center"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                            <span className="text-[9px] font-black text-slate-300 italic uppercase">Editando...</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-end">
-                            <button onClick={guardarEdicion} className="bg-emerald-500 text-[#1a2e05] p-2.5 rounded-xl hover:bg-emerald-600 transition shadow-lg shadow-emerald-200"><Save size={18} strokeWidth={3} /></button>
-                            <button onClick={cancelarEdicion} className="bg-slate-200 text-slate-500 p-2.5 rounded-xl hover:bg-slate-300 transition"><X size={18} strokeWidth={3} /></button>
+                          <div className="flex gap-2">
+                             <input
+                                type="number"
+                                name="precio_original"
+                                value={formularioEdicion.precio_original}
+                                onChange={manejarCambioFormulario}
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-slate-400 text-center outline-none"
+                              />
+                              <input
+                                type="number"
+                                name="precio_oferta"
+                                value={formularioEdicion.precio_oferta}
+                                onChange={manejarCambioFormulario}
+                                className="w-full bg-white border border-emerald-500 rounded-xl px-4 py-3 text-xs font-black text-emerald-600 text-center italic outline-none"
+                              />
                           </div>
-                        </td>
-                      </>
+                          <div className="flex-1">
+                             <input
+                                name="imagen_url"
+                                value={formularioEdicion.imagen_url}
+                                onChange={manejarCambioFormulario}
+                                placeholder="URL de Imagen"
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[10px] font-bold text-slate-400 outline-none"
+                              />
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={guardarEdicion} className="bg-emerald-500 text-white p-3 rounded-xl hover:bg-[#1a2e05] transition shadow-md active:scale-90"><Save size={18} /></button>
+                            <button onClick={cancelarEdicion} className="bg-white border border-slate-200 text-slate-400 p-3 rounded-xl hover:bg-red-50 hover:text-red-500 transition active:scale-90"><X size={18} /></button>
+                          </div>
+                        </div>
+                      </td>
                     ) : (
                       /* --- MODO VISUALIZACIÓN --- */
                       <>
-                        <td className="px-6 py-4">
+                        <td className="px-8 py-5">
                           <div className="flex gap-4 items-center">
-                            <div className="relative">
+                            <div className="shrink-0 bg-slate-50 border border-slate-100 rounded-2xl size-14 flex items-center justify-center overflow-hidden">
                                 <img
                                     src={producto.images[0] || "/default-image.png"}
                                     alt={producto.name}
-                                    className="w-14 h-14 object-contain p-1 bg-slate-50 rounded-2xl shadow-sm group-hover:scale-110 transition-transform"
+                                    className="h-10 w-auto object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-md"
                                 />
-                                <div className="absolute -top-2 -left-2"><Star size={16} fill="#10b981" className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
                             </div>
                             <div>
-                              <p className="font-black text-[#1a2e05] uppercase italic text-sm tracking-tighter leading-none">{producto.name}</p>
-                              <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">UID: {producto.id.toString().slice(0,8)}</p>
+                              <p className="font-black text-[#1a2e05] uppercase italic text-xs tracking-tight leading-tight">{producto.name}</p>
+                              <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">{producto.id.toString().slice(-6).toUpperCase()}</p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 hidden md:table-cell">
-                          <p className="text-xs text-slate-500 font-medium line-clamp-2 max-w-[200px]">{producto.description || "Sin descripción de menú"}</p>
+                        <td className="px-8 py-5 hidden lg:table-cell text-center">
+                          <span className="text-[10px] font-black text-slate-300 italic">{moneda}{producto.mrp.toFixed(0)}</span>
                         </td>
 
-                        <td className="px-6 py-4 hidden md:table-cell text-center">
-                          <span className="text-xs font-bold text-slate-400">{moneda} {producto.mrp.toFixed(2)}</span>
-                        </td>
-
-                        <td className="px-6 py-4 text-center">
-                          <span className="text-lg font-black text-[#1a2e05] italic">
-                            {moneda} {producto.price.toFixed(2)}
+                        <td className="px-8 py-5 text-center">
+                          <span className="text-xl font-[1000] text-[#1a2e05] italic tracking-tighter">
+                            {moneda}{producto.price.toFixed(0)}
                           </span>
                         </td>
 
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-8 py-5 text-center">
                           <button
                             onClick={() => alternarStock(producto.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-[10px] uppercase italic transition-all ${
+                            className={`px-4 py-1.5 rounded-full font-black text-[8px] uppercase italic tracking-widest border transition-all ${
                               producto.enStock 
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                              : "bg-red-50 text-red-600 border border-red-100"
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                              : "bg-slate-50 text-slate-300 border-slate-100"
                             }`}
                           >
-                            {producto.enStock ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                             {producto.enStock ? "En Juego" : "Banca"}
                           </button>
                         </td>
 
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-end">
+                        <td className="px-8 py-5">
+                          <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => iniciarEdicion(producto)}
-                              className="bg-white border-2 border-slate-100 text-[#1a2e05] p-2.5 rounded-xl hover:border-[#1a2e05] hover:bg-[#1a2e05] hover:text-white transition-all shadow-sm"
+                              className="bg-white border border-slate-100 text-slate-400 p-2.5 rounded-xl hover:text-emerald-500 hover:border-emerald-500 transition-all shadow-sm active:scale-90"
                             >
-                              <Pencil size={18} />
+                              <Pencil size={16} />
                             </button>
                             <button
                               onClick={() => eliminarProducto(producto.id)}
-                              className="bg-white border-2 border-slate-100 text-red-400 p-2.5 rounded-xl hover:border-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                              className="bg-white border border-slate-100 text-slate-400 p-2.5 rounded-xl hover:text-red-500 hover:border-red-500 transition-all shadow-sm active:scale-90"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
@@ -317,6 +305,11 @@ const AdministrarProductosTienda = () => {
           </table>
         </div>
       </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
     </div>
   );
 };

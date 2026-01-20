@@ -1,19 +1,21 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  StarIcon,
   PlusIcon,
   CheckIcon,
   ChevronLeft,
   Flame,
-  Clock,
-  ShieldCheck,
-  Star
+  Zap,
+  ShoppingBag,
+  PlusCircle,
+  Trophy,
+  ChefHat,
+  Loader2
 } from "lucide-react";
 
+import { supabase } from "../services/supabase";
 import { addToCart } from "../features/cart/cartSlice";
-import Counter from "../Components/Common/Counter";
 import { useNotify } from "../hook/useNotify";
 
 const ProductDetails = () => {
@@ -22,56 +24,58 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const notify = useNotify();
 
-  const products = useSelector((state) => state.product.list);
-  const cart = useSelector((state) => state.cart.cartItems);
-
-  const product = products.find((p) => String(p.id) === String(id));
-
+  const [localProduct, setLocalProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedExtras, setSelectedExtras] = useState([]);
-  const [mainImage, setMainImage] = useState(product?.images?.[0] || "/default-image.png");
+  const [mainImage, setMainImage] = useState("");
 
-  // --- DATOS DE PRUEBA WINGOOL STYLE ---
-  const ingredientesPrueba = [
-    { id: "i1", nombre: "Extra Queso", precio: 15 },
-    { id: "i2", nombre: "Salsa Habanero", precio: 10 },
-    { id: "i3", nombre: "Tocineta Crujiente", precio: 25 },
-    { id: "i4", nombre: "Cebolla Caramelizada", precio: 12 },
-  ];
+  const products = useSelector((state) => state.product?.list) || [];
+  
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("productos")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-  const complementosPrueba = [
-    { id: "a1", nombre: "Papas Crinkle", precio: 45, imagen: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=300" },
-    { id: "a2", nombre: "Aros de Cebolla", precio: 55, imagen: "https://images.unsplash.com/photo-1639024471283-035188835118?q=80&w=300" },
-  ];
+        if (error) throw error;
 
-  const bebidasPrueba = [
-    { id: "b1", nombre: "Coca-Cola Fría", precio: 30, imagen: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=300" },
-    { id: "b2", nombre: "Cerveza Nacional", precio: 45, imagen: "https://images.unsplash.com/photo-1612528443702-f6741f70a049?q=80&w=300" },
-  ];
+        if (data) {
+          setLocalProduct(data);
+          setMainImage(data.imagen_url || "/default-image.png");
+        }
+      } catch (err) {
+        console.error("Error cargando producto:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!product) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
-        <p className="text-2xl font-black text-[#1a2e05] uppercase italic">Producto fuera de la cancha</p>
-        <button onClick={() => navigate("/shop")} className="mt-4 text-emerald-600 font-bold underline">Volver al Menú</button>
-      </div>
-    );
-  }
+    fetchProductData();
+  }, [id]);
 
-  const listaIngredientes = product.ingredientes || ingredientesPrueba;
-  const listaComplementos = product.complementos || complementosPrueba;
-  const listaBebidas = product.bebidas || bebidasPrueba;
+  const quickMenu = useMemo(() => {
+    if (!products.length) return [];
+    return products
+      .filter((p) => String(p.id) !== String(id) && p.disponible !== false)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 5);
+  }, [products, id]);
 
-  const productId = product.id;
-  const currency = "$";
-
-  const averageRating = product.rating?.length
-    ? product.rating.reduce((acc, item) => acc + item.rating, 0) / product.rating.length
-    : 5; // Default 5 para que luzca bien
-
-  const precioOriginal = Number(product.precio_original) || 0;
-  const precioOferta = Number(product.precio_oferta) || 0;
-  const hasOffer = precioOferta > 0 && precioOferta < precioOriginal;
-  const precioBase = hasOffer ? precioOferta : precioOriginal;
+  const { precioBase, precioOriginal, hasOffer } = useMemo(() => {
+    if (!localProduct) return { precioBase: 0, precioOriginal: 0, hasOffer: false };
+    const original = Number(localProduct.precio_original) || 0;
+    const oferta = Number(localProduct.precio_oferta) || 0;
+    const ofertaValida = oferta > 0 && oferta < original;
+    return {
+      precioOriginal: original,
+      precioBase: ofertaValida ? oferta : original,
+      hasOffer: ofertaValida
+    };
+  }, [localProduct]);
 
   const precioTotal = useMemo(() => {
     const costoExtras = selectedExtras.reduce((acc, item) => acc + (Number(item.precio) || 0), 0);
@@ -88,210 +92,180 @@ const ProductDetails = () => {
   };
 
   const addToCartHandler = () => {
-    if (cart[productId]) {
-      notify.warning("Ya está en tu alineación");
-      return;
-    }
-    dispatch(addToCart({ productId, extras: selectedExtras, precioFinal: precioTotal }));
-    notify.success("¡Agregado con éxito!");
+    if (!localProduct) return;
+    const extrasIdString = selectedExtras.map(e => e.id).sort().join("-");
+    const uniqueCartId = extrasIdString ? `${localProduct.id}-${extrasIdString}` : localProduct.id;
+    
+    dispatch(addToCart({ 
+      ...localProduct, 
+      id: uniqueCartId, 
+      originalId: localProduct.id,
+      nombre: localProduct.nombre, 
+      imagen_url: localProduct.imagen_url, 
+      precio: precioTotal, 
+      extras: selectedExtras, 
+      quantity: 1 
+    }));
+    notify.success("¡Jugada en canasta!");
   };
 
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-emerald-500 mb-4" size={40} />
+        <p className="text-[10px] font-black uppercase italic tracking-[0.3em] text-slate-400">Preparando alineación...</p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-white pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+    <div className="min-h-screen bg-slate-50/30 pt-20 pb-12 font-sans selection:bg-emerald-500 selection:text-white">
+      <div className="max-w-6xl mx-auto px-6">
         
-        {/* BOTÓN VOLVER */}
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#1a2e05] font-black text-[10px] uppercase tracking-[0.2em] mb-8 hover:text-emerald-600 transition-colors"
-        >
-          <ChevronLeft size={16} /> Volver al Menú
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black text-[9px] uppercase tracking-[0.2em] mb-8 hover:text-emerald-600 transition-all italic">
+          <ChevronLeft size={14} strokeWidth={3} /> Regresar al Menú
         </button>
 
-        <div className="flex flex-col lg:flex-row gap-12 xl:gap-20">
-
-          {/* ===== IZQUIERDA: GALERÍA VISUAL ===== */}
-          <div className="w-full lg:w-1/2 space-y-4">
-            <div className="relative bg-slate-50 rounded-[3rem] h-[350px] sm:h-[450px] lg:h-[500px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner group">
+        <div className="flex flex-col lg:flex-row gap-10 items-start">
+          
+          <div className="w-full lg:w-[45%] lg:sticky lg:top-24">
+            <div className="relative bg-white rounded-[3rem] h-[350px] md:h-[480px] flex items-center justify-center overflow-hidden shadow-sm border border-slate-100 group">
               {hasOffer && (
-                <div className="absolute top-8 left-8 bg-red-500 text-white font-black px-4 py-2 rounded-2xl flex items-center gap-2 shadow-xl z-10 animate-pulse italic text-sm">
-                  <Flame size={18} fill="currentColor" /> OFERTA MVP
+                <div className="absolute top-6 left-6 bg-red-500 text-white font-black px-4 py-1.5 rounded-full flex items-center gap-2 z-10 italic text-[9px] tracking-widest shadow-lg shadow-red-200">
+                  <Flame size={12} fill="currentColor" /> OFERTA MVP
                 </div>
               )}
-              <img
-                src={mainImage}
-                alt={product.name}
-                className="max-h-[80%] max-w-[80%] object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-700"
+              <img 
+                src={mainImage} 
+                alt={localProduct?.nombre} 
+                className="max-h-[75%] max-w-[75%] object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-700" 
               />
-            </div>
-
-            {/* MINIATURAS */}
-            <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
-              {product.images?.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setMainImage(image)}
-                  className={`relative shrink-0 bg-slate-50 rounded-2xl p-2 w-20 h-20 border-2 transition-all ${mainImage === image ? 'border-emerald-500 bg-white' : 'border-transparent'}`}
-                >
-                  <img src={image} alt="" className="w-full h-full object-contain" />
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* ===== DERECHA: PERSONALIZACIÓN ===== */}
-          <div className="w-full lg:w-1/2 space-y-8">
-            <div className="space-y-2">
-              <h1 className="text-4xl sm:text-5xl font-black text-[#1a2e05] uppercase italic tracking-tighter leading-none">
-                {product.name}
-              </h1>
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill={averageRating > i ? "#10b981" : "#E2E8F0"} stroke="none" />
-                  ))}
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{product.rating?.length || 0} Reseñas</span>
+          <div className="w-full lg:w-[55%] space-y-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-emerald-500 font-black text-[8px] uppercase tracking-[0.3em] italic">
+                 <Zap size={10} fill="currentColor" /> Análisis de Sabor
               </div>
+              <h1 className="text-3xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-tight">
+                {localProduct?.nombre}
+              </h1>
+              <p className="text-slate-400 font-bold italic leading-relaxed text-xs md:text-sm max-w-lg">
+                {localProduct?.descripcion}
+              </p>
             </div>
 
-            <p className="text-slate-500 font-medium leading-relaxed">
-              {product.description || "El sabor auténtico de Wingool Company, preparado con ingredientes frescos y la pasión que nos caracteriza."}
-            </p>
-
-            {/* PRECIO DINÁMICO */}
-            <div className="flex items-end gap-4 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Precio Final</span>
+            <div className="flex items-center justify-between p-6 bg-[#1a2e05] rounded-[2.5rem] shadow-xl relative overflow-hidden group border border-white/5">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-[60px] opacity-10"></div>
+              <div className="relative z-10">
+                <span className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1 block italic opacity-70">Importe Jugada</span>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-black text-[#1a2e05] italic">{currency}{precioTotal.toFixed(2)}</span>
+                  <span className="text-4xl md:text-5xl font-[1000] text-white italic tracking-tighter leading-none">${precioTotal.toFixed(0)}</span>
                   {hasOffer && (
-                    <span className="text-lg text-slate-300 line-through font-bold">{currency}{precioOriginal.toFixed(2)}</span>
+                    <span className="text-sm text-white/20 line-through font-bold italic tracking-tighter">${precioOriginal.toFixed(0)}</span>
                   )}
                 </div>
               </div>
+              <Trophy size={32} className="text-emerald-500/10 relative z-10" />
             </div>
 
-            {/* SECCIÓN 1: INGREDIENTES */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-[#1a2e05] uppercase italic tracking-widest flex items-center gap-2">
-                <PlusIcon size={16} className="text-emerald-500" /> Personaliza tu jugada
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {listaIngredientes.map((ing) => {
-                  const isSelected = selectedExtras.find((e) => e.id === ing.id);
-                  return (
-                    <button
-                      key={ing.id}
-                      onClick={() => toggleExtra(ing)}
-                      className={`px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all flex items-center gap-2 ${
-                        isSelected 
-                          ? "bg-[#1a2e05] border-[#1a2e05] text-white shadow-xl shadow-slate-200" 
-                          : "bg-white border-slate-100 text-slate-500 hover:border-emerald-200"
-                      }`}
-                    >
-                      {ing.nombre} (+${ing.precio})
-                      {isSelected ? <CheckIcon size={14} strokeWidth={4} /> : <PlusIcon size={14} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN 2: COMPLEMENTOS */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-[#1a2e05] uppercase italic tracking-widest">¿Hambre de más?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {listaComplementos.map((extra) => {
-                  const isSelected = selectedExtras.find((e) => e.id === extra.id);
-                  return (
-                    <div 
-                      key={extra.id} 
-                      onClick={() => toggleExtra(extra)}
-                      className={`relative cursor-pointer border-2 rounded-[2rem] p-4 transition-all ${
-                        isSelected ? "border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/10" : "border-slate-50 bg-white hover:border-slate-200"
-                      }`}
-                    >
-                      <img src={extra.imagen} className="h-20 w-full object-cover rounded-2xl mb-3" alt={extra.nombre} />
-                      <p className="text-[10px] font-black uppercase text-[#1a2e05] tracking-tight">{extra.nombre}</p>
-                      <p className="text-xs text-emerald-600 font-black italic">+{currency}{extra.precio}</p>
-                      <div className={`absolute top-3 right-3 size-6 rounded-full flex items-center justify-center shadow-sm ${isSelected ? "bg-emerald-500 text-white scale-110" : "bg-slate-100 text-slate-400"}`}>
-                        {isSelected ? <CheckIcon size={14} strokeWidth={4} /> : <PlusIcon size={14} />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN 3: BEBIDAS */}
-            <div className="space-y-4 pb-8">
-              <h3 className="text-xs font-black text-[#1a2e05] uppercase italic tracking-widest">Hidratación MVP</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {listaBebidas.map((bebida) => {
-                  const isSelected = selectedExtras.find((e) => e.id === bebida.id);
-                  return (
-                    <div 
-                      key={bebida.id} 
-                      onClick={() => toggleExtra(bebida)}
-                      className={`relative cursor-pointer border-2 rounded-[2rem] p-4 transition-all flex items-center gap-4 ${
-                        isSelected ? "border-emerald-500 bg-emerald-50 shadow-lg" : "border-slate-50 bg-white"
-                      }`}
-                    >
-                      <img src={bebida.imagen} className="h-14 w-14 object-contain rounded-xl" alt={bebida.nombre} />
-                      <div className="flex-1">
-                        <p className="text-[10px] font-black uppercase text-[#1a2e05]">{bebida.nombre}</p>
-                        <p className="text-xs text-emerald-600 font-black italic">+{currency}{bebida.precio}</p>
-                      </div>
-                      <div className={`shrink-0 size-6 rounded-full flex items-center justify-center ${isSelected ? "bg-emerald-500 text-white" : "bg-slate-100"}`}>
-                        {isSelected ? <CheckIcon size={14} strokeWidth={4} /> : <PlusIcon size={14} />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 🛒 FOOTER DE ACCIÓN FIJO (OPCIONALMENTE) */}
-            <div className="sticky bottom-4 left-0 w-full bg-white/80 backdrop-blur-md p-4 rounded-[2.5rem] border border-slate-100 shadow-2xl flex items-center gap-4 z-20">
-              {cart[productId] ? (
-                <div className="flex-1 flex items-center justify-between px-2">
-                   <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase text-emerald-600 italic">En tu carrito</span>
-                      <Counter productId={productId} />
-                   </div>
-                   <button 
-                    onClick={() => navigate("/cart")}
-                    className="bg-[#1a2e05] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs italic tracking-widest hover:bg-black transition-all"
-                   >
-                     Ver Carrito
-                   </button>
+            {localProduct?.ingredientes && localProduct.ingredientes.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic">
+                  <ChefHat size={14} className="text-emerald-500" /> Personaliza tu Jugada
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {localProduct.ingredientes.map((ing) => {
+                    const isSelected = selectedExtras.find((e) => e.id === ing.id);
+                    return (
+                      <button 
+                        key={ing.id} 
+                        onClick={() => toggleExtra(ing)} 
+                        className={`px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all duration-300 flex items-center gap-2 ${
+                          isSelected 
+                          ? "bg-[#1a2e05] border-[#1a2e05] text-white shadow-lg shadow-emerald-900/10" 
+                          : "bg-white border-slate-100 text-slate-400 hover:border-emerald-200"
+                        }`}
+                      >
+                        {ing.nombre} 
+                        <span className="text-emerald-500">+${ing.precio}</span>
+                        {isSelected ? <CheckIcon size={12} strokeWidth={4} /> : <PlusIcon size={12} strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : (
-                <button
-                  onClick={addToCartHandler}
-                  className="w-full bg-[#1a2e05] text-white py-5 rounded-2xl font-black uppercase italic tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-emerald-900/10"
-                >
-                  Confirmar Jugada • {currency}{precioTotal.toFixed(2)}
-                </button>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* CONFIANZA */}
-            <div className="flex justify-center gap-8 py-4 opacity-50">
-               <div className="flex flex-col items-center gap-1">
-                  <Clock size={16} />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Entrega Veloz</span>
-               </div>
-               <div className="flex flex-col items-center gap-1">
-                  <ShieldCheck size={16} />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Pago Seguro</span>
-               </div>
-            </div>
+            {quickMenu.length > 0 && (
+              <div className="space-y-5 pt-8 border-t border-slate-100">
+                  <h3 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2 italic">
+                      <ShoppingBag size={14} fill="currentColor" /> Vínculos Recomendados
+                  </h3>
+                  
+                  <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1">
+                      {quickMenu.map((item) => {
+                          const itemNombre = item.nombre || item.name || "Producto";
+                          const itemImagen = item.imagen_url || (item.images && item.images[0]);
+                          const itemPrecio = Number(item.precio_oferta || item.precio_original || 0);
 
+                          return (
+                            <div key={item.id} className="min-w-[140px] bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-emerald-100 group relative transition-all shadow-sm">
+                                <div className="h-20 w-full flex items-center justify-center mb-3">
+                                    <img 
+                                      src={itemImagen} 
+                                      className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" 
+                                      alt="" 
+                                    />
+                                </div>
+                                <p className="text-[9px] font-black text-[#1a2e05] uppercase italic truncate mb-1 tracking-tight">{itemNombre}</p>
+                                <div className="flex justify-between items-center mt-2">
+                                  <p className="text-[11px] font-[1000] text-emerald-600 italic tracking-tighter">${itemPrecio.toFixed(0)}</p>
+                                  <button 
+                                    onClick={() => {
+                                      dispatch(addToCart({ 
+                                          ...item, 
+                                          id: item.id, 
+                                          originalId: item.id, 
+                                          nombre: itemNombre, 
+                                          imagen_url: itemImagen, 
+                                          precio: itemPrecio, 
+                                          extras: [], 
+                                          quantity: 1 
+                                      }));
+                                      notify.success(`¡${itemNombre} fichado!`);
+                                    }} 
+                                    className="bg-slate-50 text-[#1a2e05] p-1.5 rounded-lg hover:bg-[#1a2e05] hover:text-white transition-all active:scale-90"
+                                  >
+                                      <PlusCircle size={14} strokeWidth={2.5} />
+                                  </button>
+                                </div>
+                            </div>
+                          );
+                      })}
+                  </div>
+              </div>
+            )}
+
+            {/* BOTÓN DE ACCIÓN FINAL - "FICHAR AHORA" STYLE */}
+            <div className="sticky bottom-6 left-0 w-full bg-white/60 backdrop-blur-md p-4 rounded-[2.5rem] border border-white/50 shadow-2xl shadow-slate-200/50 z-20">
+              <button 
+                onClick={addToCartHandler} 
+                className="w-full bg-[#1a2e05] text-white py-5 rounded-[1.8rem] font-[1000] uppercase italic text-sm tracking-[0.25em] flex items-center justify-center gap-4 hover:bg-emerald-500 active:scale-[0.98] transition-all duration-500 shadow-xl shadow-emerald-900/20 group"
+              >
+                <Zap size={20} fill="currentColor" className="text-emerald-400 group-hover:text-white transition-colors" />
+                <span>FICHAR AHORA • ${precioTotal.toFixed(0)}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #10b981; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
     </div>
   );
 };

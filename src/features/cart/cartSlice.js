@@ -1,58 +1,60 @@
-// src/features/cart/cartSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
 const cartSlice = createSlice({
   name: "cart",
   initialState: {
-    total: 0,       // Total de unidades en el carrito
-    cartItems: {},  // Guardará los productos con su cantidad { productId: cantidad }
+    total: 0,       // Cantidad total de productos
+    cartItems: [],  // CAMBIO CLAVE: Ahora es un ARRAY para soportar extras y precios únicos
   },
   reducers: {
-    // Agregar producto al carrito
     addToCart: (state, action) => {
-      const { productId } = action.payload;
-      if (state.cartItems[productId]) {
-        state.cartItems[productId] += 1; // Si ya existe, aumenta la cantidad
+      // El payload ahora es el objeto completo: { id, name, precio, extras, quantity... }
+      const item = action.payload;
+      
+      // Buscamos si ya existe exactamente el mismo producto con los mismos extras
+      const existingItem = state.cartItems.find((i) => i.id === item.id);
+
+      if (existingItem) {
+        existingItem.quantity += 1;
       } else {
-        state.cartItems[productId] = 1;  // Si no existe, lo agrega con cantidad 1
+        // Agregamos el nuevo producto (con sus extras y precio calculado)
+        state.cartItems.push({ ...item, quantity: 1 });
       }
-      state.total += 1; // Incrementa el total general
+      state.total += 1;
     },
 
     // Quitar una unidad del producto
     removeFromCart: (state, action) => {
-      const { productId } = action.payload;
-      if (state.cartItems[productId]) {
-        state.cartItems[productId] -= 1;
-        if (state.cartItems[productId] <= 0) {
-          delete state.cartItems[productId]; // Elimina si llega a 0
-        }
+      const { productId } = action.payload; // Aquí productId es el ID único (con extras)
+      const existingItem = state.cartItems.find((i) => i.id === productId);
+
+      if (existingItem) {
+        existingItem.quantity -= 1;
         state.total -= 1;
+        if (existingItem.quantity <= 0) {
+          state.cartItems = state.cartItems.filter((i) => i.id !== productId);
+        }
       }
     },
 
     // Eliminar completamente un producto del carrito
     deleteItemFromCart: (state, action) => {
       const { productId } = action.payload;
-      if (state.cartItems[productId]) {
-        state.total -= state.cartItems[productId]; // Resta la cantidad total
-        delete state.cartItems[productId];
+      const existingItem = state.cartItems.find((i) => i.id === productId);
+      
+      if (existingItem) {
+        state.total -= existingItem.quantity;
+        state.cartItems = state.cartItems.filter((i) => i.id !== productId);
       }
     },
 
     // Vaciar todo el carrito
     clearCart: (state) => {
-      state.cartItems = {};
+      state.cartItems = [];
       state.total = 0;
     },
   },
 });
 
-// Exportar las acciones
-export const { addToCart, removeFromCart, deleteItemFromCart, clearCart } =
-  cartSlice.actions;
-
-  
-
-// Exportar el reducer
+export const { addToCart, removeFromCart, deleteItemFromCart, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

@@ -109,10 +109,14 @@ const WeeklyPromos = () => {
           </div>
         </div>
 
+        {/* BOTÓN FUNCIONAL DE LLAMADA DIRECTA */}
         <div className="text-center mt-10 relative z-10">
-          <button className="bg-[#49B981] text-[#1A2E05] font-black uppercase italic px-10 py-3 rounded-2xl hover:bg-white transition-all duration-300 shadow-lg active:scale-95 tracking-widest text-xs cursor-pointer border-none">
-            RESERVAR MESA
-          </button>
+          <a 
+            href="tel:+521234567890" 
+            className="inline-block bg-[#49B981] text-[#1A2E05] font-black uppercase italic px-10 py-3 rounded-2xl hover:bg-white transition-all duration-300 shadow-lg active:scale-95 tracking-widest text-xs cursor-pointer border-none no-underline"
+          >
+            REALIZAR RESERVACIÓN
+          </a>
         </div>
       </div>
     </div>
