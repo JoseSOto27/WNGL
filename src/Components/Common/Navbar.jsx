@@ -80,21 +80,25 @@ const Navbar = () => {
               />
             </div>
 
-            {/* SEARCH BAR WINGOOL STYLE */}
-            <form 
-              onSubmit={handleSearch} 
-              className="flex items-center gap-3 bg-slate-50 px-5 py-2.5 rounded-2xl border border-transparent focus-within:border-emerald-500 focus-within:bg-white flex-1 max-w-lg mx-auto transition-all shadow-inner"
-            >
-              <Search size={18} className="text-[#1a2e05] opacity-50" />
-              <input 
-                type="text" 
-                placeholder="¿Qué alitas se te antojan?" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400" 
-                required 
-              />
-            </form>
+          {/* SEARCH BAR WINGOOL STYLE */}
+  <form 
+  onSubmit={handleSearch} 
+  className="flex items-center gap-3 bg-white px-6 py-3 rounded-full border-2 border-slate-100 focus-within:border-emerald-500 focus-within:shadow-[0_0_20px_rgba(16,185,129,0.15)] flex-1 max-w-lg mx-auto transition-all duration-300 group"
+>
+  <Search 
+    size={20} 
+    className="text-[#1a2e05] opacity-30 group-focus-within:opacity-100 group-focus-within:text-emerald-500 transition-all" 
+  />
+  <input 
+    type="text" 
+    placeholder="BUSCA TU PRÓXIMA JUGADA..." 
+    value={search} 
+    onChange={(e) => setSearch(e.target.value)} 
+    className="w-full bg-transparent outline-none text-[11px] font-[1000] uppercase italic tracking-widest text-[#1a2e05] placeholder:text-slate-300 placeholder:italic" 
+    required 
+  />
+  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse opacity-0 group-focus-within:opacity-100 transition-opacity" />
+</form>
 
             {/* DESKTOP NAV */}
             <div className="hidden lg:flex items-center gap-8 text-[11px] font-black uppercase tracking-widest text-slate-400 ml-6">

@@ -62,10 +62,10 @@ const Footer = () => {
               </div>
               
               <div className="flex justify-center md:justify-start gap-3">
-                <a href="#" className="group bg-slate-50 border border-slate-100 p-4 rounded-2xl text-slate-400 hover:bg-[#1a2e05] hover:text-emerald-400 hover:border-[#1a2e05] transition-all duration-300">
+                <a href="https://www.instagram.com/wingoolcompanytulancingo/" className="group bg-slate-50 border border-slate-100 p-4 rounded-2xl text-slate-400 hover:bg-[#1a2e05] hover:text-emerald-400 hover:border-[#1a2e05] transition-all duration-300">
                   <Instagram size={20} className="group-hover:rotate-12 transition-transform" />
                 </a>
-                <a href="#" className="group bg-slate-50 border border-slate-100 p-4 rounded-2xl text-slate-400 hover:bg-[#1a2e05] hover:text-emerald-400 hover:border-[#1a2e05] transition-all duration-300">
+                <a href="https://www.facebook.com/profile.php?id=61576125955219" className="group bg-slate-50 border border-slate-100 p-4 rounded-2xl text-slate-400 hover:bg-[#1a2e05] hover:text-emerald-400 hover:border-[#1a2e05] transition-all duration-300">
                   <Facebook size={20} className="group-hover:-rotate-12 transition-transform" />
                 </a>
               </div>

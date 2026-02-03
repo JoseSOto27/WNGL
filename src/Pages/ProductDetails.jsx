@@ -199,7 +199,7 @@ const ProductDetails = () => {
             {quickMenu.length > 0 && (
               <div className="space-y-5 pt-8 border-t border-slate-100">
                   <h3 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2 italic">
-                      <ShoppingBag size={14} fill="currentColor" /> Vínculos Recomendados
+                      <ShoppingBag size={14} fill="currentColor" /> Platillos  Recomendados
                   </h3>
                   
                   <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1">

@@ -2,280 +2,265 @@ import React, { useEffect, useState } from "react";
 import Loading from "../Components/Common/Loading";
 import { supabase } from "../services/supabase"; 
 import { 
-  CheckCircle, Clock, Package, Truck, 
-  Phone, MapPin, User, Star, X, ChevronRight, Zap, Trophy, Receipt,
-  Hash, Calendar, CreditCard, Printer
+  Clock, Package, Truck, Phone, MapPin, User, Star, X, 
+  ChevronRight, Zap, Trophy, Receipt, Ticket, Coins, CreditCard, Banknote, RefreshCcw
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function PedidosTienda() {
+export default function StoreOrders() {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [estadisticas, setEstadisticas] = useState({
-    total: 0, pendientes: 0, procesando: 0, enviados: 0, entregados: 0
-  });
+  const [estadisticas, setEstadisticas] = useState({ total: 0, pendientes: 0, procesando: 0, enviados: 0, entregados: 0 });
   const [filtroEstado, setFiltroEstado] = useState("todos");
   
-  const currency = "$";
+  const parseCurrency = (val) => {
+    if (val === undefined || val === null || val === "") return 0;
+    if (typeof val === 'number') return val;
+    return parseFloat(String(val).replace(/[^0-9.]/g, "")) || 0;
+  };
 
   const obtenerPedidos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('pedidos_v2')
-        .select('*')
-        .order('fecha_pedido', { ascending: false });
-
+      const { data, error } = await supabase.from('pedidos_v2').select('*').order('fecha_pedido', { ascending: false });
       if (error) throw error;
-      calcularEstadisticas(data || []);
       setPedidos(data || []);
-    } catch (error) {
-      toast.error("Error al conectar con la base de datos");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
-    try {
-      const { error } = await supabase
-        .from('pedidos_v2')
-        .update({ estado: nuevoEstado })
-        .eq('id', pedidoId);
-
-      if (error) throw error;
-      setPedidos((prev) =>
-        prev.map((p) => p.id === pedidoId ? { ...p, estado: nuevoEstado } : p)
-      );
-      toast.success(`JUGADA ACTUALIZADA: ${nuevoEstado.toUpperCase()}`);
-    } catch (error) {
-      toast.error("Error al cambiar estado");
-    }
-  };
-
-  const calcularEstadisticas = (data) => {
-    setEstadisticas({
-      total: data.length,
-      pendientes: data.filter(p => p.estado === 'pendiente').length,
-      procesando: data.filter(p => p.estado === 'procesando').length,
-      enviados: data.filter(p => p.estado === 'enviado').length,
-      entregados: data.filter(p => p.estado === 'entregado').length
-    });
-  };
-
-  const abrirModal = (pedido) => {
-    if (!pedido) return;
-    let productosValidados = [];
-    try {
-      productosValidados = typeof pedido.productos === 'string' 
-        ? JSON.parse(pedido.productos) 
-        : (pedido.productos || []);
-    } catch (e) {
-      productosValidados = [];
-    }
-    setPedidoSeleccionado({
-      ...pedido,
-      productos: Array.isArray(productosValidados) ? productosValidados : []
-    });
-    setModalAbierto(true);
-  };
-
-  const cerrarModal = () => {
-    setModalAbierto(false);
-    setPedidoSeleccionado(null);
+      const d = data || [];
+      setEstadisticas({
+        total: d.length,
+        pendientes: d.filter(p => p.estado === 'pendiente').length,
+        procesando: d.filter(p => p.estado === 'procesando').length,
+        enviados: d.filter(p => p.estado === 'enviado').length,
+        entregados: d.filter(p => p.estado === 'entregado').length
+      });
+    } catch (error) { toast.error("Error DB"); } finally { setCargando(false); }
   };
 
   useEffect(() => {
     obtenerPedidos();
-    const channel = supabase
-      .channel('admin-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos_v2' }, () => obtenerPedidos())
-      .subscribe();
+    const channel = supabase.channel('admin-updates').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos_v2' }, () => obtenerPedidos()).subscribe();
     return () => supabase.removeChannel(channel);
   }, []);
+
+  const abrirModal = (pedido) => {
+    let prods = [];
+    try { prods = typeof pedido.productos === 'string' ? JSON.parse(pedido.productos) : (pedido.productos || []); } catch (e) { prods = []; }
+    setPedidoSeleccionado({ ...pedido, productos: prods });
+    setModalAbierto(true);
+  };
+
+  const actualizarEstado = async (id, nuevo) => {
+    await supabase.from('pedidos_v2').update({ estado: nuevo }).eq('id', id);
+    obtenerPedidos();
+    toast.success(`ESTADO: ${nuevo.toUpperCase()}`);
+  };
 
   if (cargando) return <Loading />;
 
   return (
-    <div className="p-4 md:p-10 bg-slate-50 min-h-screen font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="p-4 md:p-12 bg-white min-h-screen font-sans text-slate-900">
       
-      {/* HEADER MVP SUTIL */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 border-b border-slate-200 pb-8">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <div className="flex items-center gap-2 text-emerald-500 font-black text-[9px] uppercase tracking-[0.3em] mb-1 italic">
-             <Zap size={12} fill="currentColor" /> Centro de Operaciones
-          </div>
-          <h1 className="text-4xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-none">
-            CENTRAL DE <span className="text-emerald-500">PEDIDOS</span>
-          </h1>
+           <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 italic">
+              <Zap size={14} fill="currentColor" /> CONTROL DE PLANILLA
+           </div>
+           <h1 className="text-4xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-none">
+             ADMINISTRAR <span className="text-emerald-500 font-[1000]">PEDIDOS</span>
+           </h1>
         </div>
-        
-        <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
-           {['todos', 'pendiente', 'entregado'].map((f) => (
-             <button 
-              key={f}
-              onClick={() => setFiltroEstado(f)}
-              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase italic tracking-widest transition-all ${filtroEstado === f ? 'bg-[#1a2e05] text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}
-             >
-               {f}
-             </button>
-           ))}
+
+        <div className="flex items-center gap-4">
+            <div className="bg-white border border-slate-100 px-6 py-3 rounded-2xl flex items-center gap-4 shadow-sm">
+                <div className="text-right">
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">ITEMS TOTALES</p>
+                    <p className="text-2xl font-[1000] text-[#1a2e05] leading-none tracking-tighter">{estadisticas.total}</p>
+                </div>
+                <div className="size-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
+                    <Package size={20} />
+                </div>
+            </div>
+            <button onClick={obtenerPedidos} className="size-12 bg-[#1a2e05] rounded-xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500 transition-all shadow-lg active:scale-90">
+                <RefreshCcw size={20} />
+            </button>
         </div>
       </div>
 
-      {/* STATS REFINADAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        <StatCard label="Total" val={estadisticas.total} color="slate" icon={<Receipt size={18}/>}/>
-        <StatCard label="Pendientes" val={estadisticas.pendientes} color="yellow" icon={<Clock size={18}/>}/>
-        <StatCard label="Cocina" val={estadisticas.procesando} color="blue" icon={<Zap size={18}/>}/>
-        <StatCard label="Reparto" val={estadisticas.enviados} color="purple" icon={<Truck size={18}/>}/>
-        <StatCard label="Éxito" val={estadisticas.entregados} color="green" icon={<Trophy size={18}/>}/>
+      {/* FILTROS */}
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
+          {['todos', 'pendiente', 'procesando', 'enviado', 'entregado'].map((f) => (
+            <button key={f} onClick={() => setFiltroEstado(f)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase italic border ${filtroEstado === f ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-100 text-slate-300'}`}>{f}</button>
+          ))}
       </div>
 
-      {/* TABLA DE PEDIDOS SUTIL */}
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
-              <tr>
-                <th className="px-8 py-5 italic">Ticket</th>
-                <th className="px-8 py-5 italic">Jugador / Cliente</th>
-                <th className="px-8 py-5 text-center italic">Importe</th>
-                <th className="px-8 py-5 text-center italic">Estado de Jugada</th>
-                <th className="px-8 py-5 text-right italic">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {pedidos.filter(p => filtroEstado === 'todos' || p.estado === filtroEstado).map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 transition-all cursor-pointer group" onClick={() => abrirModal(p)}>
-                  <td className="px-8 py-5">
-                    <span className="font-black italic text-[#1a2e05] text-xs bg-slate-100 px-3 py-1 rounded-lg">
-                      #{p.id?.slice(-6).toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className="font-black text-[#1a2e05] uppercase italic text-xs tracking-tight">{p.cliente_nombre}</p>
-                    <p className="text-slate-400 text-[8px] font-bold mt-0.5 tracking-wider">{p.cliente_telefono}</p>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <span className="font-[1000] text-xl text-[#1a2e05] italic tracking-tighter">
-                      {currency}{Number(p.total || 0).toFixed(0)}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-center" onClick={(e) => e.stopPropagation()}>
-                    <select 
-                      value={p.estado} 
-                      onChange={(e) => actualizarEstadoPedido(p.id, e.target.value)}
-                      className={`text-[8px] font-black uppercase italic tracking-widest rounded-full border border-transparent px-4 py-2 cursor-pointer outline-none transition-all shadow-sm ${getStatusColor(p.estado)}`}
-                    >
-                      <option value="pendiente">Pendiente</option>
-                      <option value="procesando">En Cocina</option>
-                      <option value="enviado">En Camino</option>
-                      <option value="entregado">Entregado</option>
-                    </select>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="inline-flex bg-slate-50 text-slate-300 group-hover:bg-[#1a2e05] group-hover:text-emerald-400 size-9 rounded-xl items-center justify-center transition-all">
-                      <ChevronRight size={18} strokeWidth={3} />
+      {/* TABLA */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden mb-20">
+        <table className="w-full text-left">
+          <thead className="bg-white text-[9px] font-black uppercase text-slate-300 tracking-[0.2em]">
+            <tr>
+              <th className="px-10 py-8 italic font-black">PRODUCTO / JUGADOR</th>
+              <th className="px-10 py-8 italic font-black text-center">ID TICKET</th>
+              <th className="px-10 py-8 text-center italic font-black">MARCADOR FINAL</th>
+              <th className="px-10 py-8 text-center italic font-black">ESTADO</th>
+              <th className="px-10 py-8 text-right italic font-black">ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {pedidos.filter(p => filtroEstado === 'todos' || p.estado === filtroEstado).map((p) => (
+              <tr key={p.id} onClick={() => abrirModal(p)} className="hover:bg-slate-50/50 transition-all cursor-pointer group">
+                <td className="px-10 py-8">
+                    <div className="flex items-center gap-4">
+                        <div className="size-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
+                            <User size={20} />
+                        </div>
+                        <div>
+                            <p className="font-[1000] text-[#1a2e05] uppercase italic text-sm leading-tight tracking-tight">{p.cliente_nombre}</p>
+                            <p className="text-[10px] font-black text-slate-300 uppercase italic mt-1 tracking-widest">{p.metodo_pago}</p>
+                        </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </td>
+                <td className="px-10 py-8 text-center">
+                    <span className="text-slate-300 font-bold text-[11px] tracking-widest">#{p.id?.slice(-6).toUpperCase()}</span>
+                </td>
+                <td className="px-10 py-8 text-center">
+                    <span className="font-[1000] text-3xl text-[#1a2e05] italic tracking-tighter">${parseCurrency(p.total).toFixed(0)}</span>
+                </td>
+                <td className="px-10 py-8 text-center" onClick={e => e.stopPropagation()}>
+                  <select 
+                    value={p.estado} 
+                    onChange={(e) => actualizarEstado(p.id, e.target.value)} 
+                    className={`text-[8px] font-black uppercase italic tracking-[0.2em] rounded-full px-5 py-2.5 border-none outline-none cursor-pointer transition-all shadow-sm ${getStatusColorDesign(p.estado)}`}
+                  >
+                    <option value="pendiente">PENDIENTE</option>
+                    <option value="procesando">EN COCINA</option>
+                    <option value="enviado">EN CAMINO</option>
+                    <option value="entregado">EN JUEGO</option>
+                  </select>
+                </td>
+                <td className="px-10 py-8 text-right">
+                    <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                        <div className="size-10 bg-[#1a2e05] text-emerald-500 rounded-xl flex items-center justify-center">
+                            <ChevronRight size={20} />
+                        </div>
+                    </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* MODAL DETALLES - TICKET CLEAN */}
+      {/* MODAL DETALLES ALTA PRECISIÓN (ANIMADO) */}
       {modalAbierto && pedidoSeleccionado && (
-        <div className="fixed inset-0 bg-[#1a2e05]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-[#0f1a04]/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden border-b-[12px] border-emerald-500 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto">
             
-            <div className="p-6 border-b border-dashed border-slate-100 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                 <div className="bg-[#1a2e05] p-2 rounded-xl text-emerald-500 shadow-lg shadow-emerald-900/20">
-                    <Receipt size={20} />
+            <div className="bg-[#0f1a04] p-6 text-white flex justify-between items-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-[60px] opacity-10"></div>
+                 <div className="relative z-10 flex items-center gap-4">
+                    <div className="bg-emerald-500 p-2 rounded-xl text-[#0f1a04]"><Receipt size={20}/></div>
+                    <div>
+                        <h2 className="text-xl font-[1000] italic uppercase tracking-tighter leading-none">PEDIDO <span className="text-emerald-500">#{pedidoSeleccionado.id.toString().slice(-6).toUpperCase()}</span></h2>
+                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mt-1">Status: {pedidoSeleccionado.estado}</p>
+                    </div>
                  </div>
-                 <div>
-                    <h2 className="text-lg font-[1000] italic uppercase tracking-tighter text-[#1a2e05]">
-                      TICKET <span className="text-emerald-600">#{(pedidoSeleccionado?.id || "").toString().slice(-6).toUpperCase()}</span>
-                    </h2>
-                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                      {new Date(pedidoSeleccionado?.fecha_pedido).toLocaleTimeString()}
+                 <button onClick={() => setModalAbierto(false)} className="relative z-10 bg-white/5 text-white p-2 rounded-xl hover:bg-red-500 transition-all active:scale-90"><X size={20}/></button>
+            </div>
+
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar text-slate-900">
+              
+              {/* CONTACTO & PAGO */}
+              <div className="grid grid-cols-2 gap-3">
+                 <div className={`p-4 rounded-2xl border-2 flex flex-col gap-1 ${pedidoSeleccionado.metodo_pago?.toLowerCase().includes('efectivo') ? 'bg-amber-50/50 border-amber-100 text-amber-600' : 'bg-blue-50/50 border-blue-100 text-blue-600'}`}>
+                    <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Cobro via</span>
+                    <p className="text-xs font-[1000] uppercase italic flex items-center gap-2">
+                        {pedidoSeleccionado.metodo_pago?.toLowerCase().includes('efectivo') ? <Banknote size={14}/> : <CreditCard size={14}/>}
+                        {pedidoSeleccionado.metodo_pago}
                     </p>
                  </div>
-              </div>
-              <button onClick={cerrarModal} className="bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all">
-                <X size={18} strokeWidth={3}/>
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              
-              <div className="grid grid-cols-1 gap-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
-                 <DetailRow icon={<User size={12}/>} label="Cliente" val={pedidoSeleccionado?.cliente_nombre}/>
-                 <DetailRow icon={<Phone size={12}/>} label="WhatsApp" val={pedidoSeleccionado?.cliente_telefono}/>
-                 <DetailRow icon={<MapPin size={12}/>} label="Ubicación" val={pedidoSeleccionado?.direccion_entrega}/>
+                 <div className="p-4 rounded-2xl border-2 bg-slate-50 border-slate-100 text-slate-500 flex flex-col gap-1">
+                    <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Hora de inicio</span>
+                    <p className="text-xs font-[1000] uppercase italic flex items-center gap-2"><Clock size={14}/> {new Date(pedidoSeleccionado.fecha_pedido).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                 </div>
               </div>
 
-              <div className="space-y-3">
-                <p className="text-[9px] font-black text-[#1a2e05] uppercase tracking-widest italic flex items-center gap-2 px-1">
-                   <Zap size={12} fill="currentColor" className="text-emerald-500"/> Comanda Técnica
-                </p>
-                
-                <div className="space-y-2">
-                  {pedidoSeleccionado?.productos?.map((item, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <span className="bg-[#1a2e05] text-emerald-400 size-7 flex items-center justify-center rounded-lg text-[10px] font-black italic">
-                            {item?.cantidad}
-                          </span>
-                          <div>
-                            <p className="font-black text-[11px] text-[#1a2e05] uppercase italic leading-none">{item?.nombre}</p>
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {item?.extras?.length > 0 ? item.extras.map((ex, idx) => (
-                                <span key={idx} className="text-[7px] text-emerald-600 font-bold uppercase italic">+ {ex?.nombre}</span>
-                              )) : <span className="text-[7px] text-slate-300 font-bold uppercase italic">Clásico</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="font-black text-xs text-[#1a2e05] italic">${Number(item?.total).toFixed(0)}</span>
+              {/* JUGADOR TITULAR */}
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between">
+                <div className="flex gap-4 items-center">
+                    <div className="size-10 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm"><User size={20}/></div>
+                    <div>
+                        <p className="text-[7px] font-black text-slate-300 uppercase tracking-[0.2em] mb-0.5 italic">Jugador Titular</p>
+                        <p className="text-sm font-[1000] text-[#0f1a04] uppercase italic leading-none">{pedidoSeleccionado.cliente_nombre}</p>
                     </div>
-                  ))}
+                </div>
+                <a href={`tel:${pedidoSeleccionado.cliente_telefono}`} className="bg-emerald-500 text-[#0f1a04] p-3 rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all"><Phone size={18} fill="currentColor"/></a>
+              </div>
+
+              {/* DIRECCION */}
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex gap-4 items-center">
+                <div className="size-10 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm"><MapPin size={20}/></div>
+                <div>
+                    <p className="text-[7px] font-black text-slate-300 uppercase tracking-[0.2em] mb-0.5 italic">Coordenadas de Entrega</p>
+                    <p className="text-xs font-[1000] text-[#0f1a04] uppercase italic leading-tight">{pedidoSeleccionado.direccion_entrega}</p>
                 </div>
               </div>
 
-              <div className="border-t border-dashed border-slate-200 pt-5 space-y-2 px-2">
-                 <div className="flex justify-between text-[10px] font-bold text-slate-300 uppercase italic">
-                    <span>Subtotal + Envío</span>
-                    <span>{currency}{(Number(pedidoSeleccionado?.total || 0) + (pedidoSeleccionado?.puntos_usados ? pedidoSeleccionado.puntos_usados / 10 : 0)).toFixed(0)}</span>
-                 </div>
-                 {pedidoSeleccionado?.puntos_usados > 0 && (
-                   <div className="flex justify-between text-[10px] font-black text-amber-500 uppercase italic">
-                      <span>✨ Wallet Puntos</span>
-                      <span>-{currency}{(pedidoSeleccionado.puntos_usados / 10).toFixed(0)}</span>
-                   </div>
-                 )}
-                 <div className="flex justify-between items-end pt-2">
-                    <span className="text-xs font-black text-[#1a2e05] uppercase italic tracking-widest">TOTAL</span>
-                    <span className="text-4xl font-[1000] text-emerald-600 italic tracking-tighter leading-none">
-                      {currency}{Number(pedidoSeleccionado?.total || 0).toFixed(0)}
-                    </span>
-                 </div>
+              {/* COMANDA */}
+              <div className="space-y-3">
+                <p className="text-[8px] font-black uppercase italic text-[#0f1a04] tracking-[0.2em] px-2 opacity-40">Detalle de Comanda</p>
+                {pedidoSeleccionado.productos.map((item, i) => (
+                  <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors animate-in fade-in slide-in-from-left-4" style={{ animationDelay: `${i * 100}ms` }}>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <span className="bg-[#0f1a04] text-emerald-400 size-8 flex items-center justify-center rounded-lg text-[10px] font-black italic shadow-md">{item.quantity || item.cantidad}x</span>
+                          <p className="font-[1000] text-xs text-[#0f1a04] uppercase italic tracking-tight">{item.nombre}</p>
+                        </div>
+                        <span className="font-bold text-[10px] text-slate-300 italic">${parseCurrency(item.subtotal).toFixed(0)}</span>
+                      </div>
+                      {item.ingredientes && item.ingredientes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2 pl-11">
+                          {item.ingredientes.map((ing, idx) => (
+                            <span key={idx} className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-2 py-0.5 rounded-md border border-emerald-100 italic">+ {ing.nombre}</span>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+                ))}
               </div>
-            </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
-                <div className="flex-1 bg-[#1a2e05] p-4 rounded-2xl text-white flex flex-col justify-center relative overflow-hidden group">
-                   <Trophy size={40} className="absolute -right-2 -bottom-2 text-white/5 rotate-12" />
-                   <span className="text-[7px] font-black uppercase text-emerald-400 tracking-widest mb-1 italic">Recompensa MVP</span>
-                   <span className="text-xl font-[1000] italic leading-none">+{pedidoSeleccionado?.puntos_generados || 0} <span className="text-[10px]">PTS</span></span>
+              {/* TICKET FINAL (ESTILO REFINADO) */}
+              <div className="bg-[#0f1a04] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border-b-4 border-emerald-500 mt-6">
+                <div className="absolute -right-5 -bottom-5 w-24 h-24 bg-emerald-500 rounded-full blur-[60px] opacity-10"></div>
+                
+                <div className="space-y-2 mb-6">
+                    <div className="flex justify-between text-[9px] font-black text-white/30 uppercase italic"><span>Subtotal Jugada</span><span>${parseCurrency(pedidoSeleccionado.subtotal).toFixed(0)}</span></div>
+                    
+                    {parseCurrency(pedidoSeleccionado.puntos_usados) > 0 && (
+                      <div className="flex justify-between items-center text-emerald-400 py-2 border-y border-white/5 my-2">
+                        <div className="flex items-center gap-2"><Ticket size={12}/> <span className="text-[8px] font-black uppercase italic">Wallet Wingool</span></div>
+                        <span className="text-xs font-[1000]">-${parseCurrency(pedidoSeleccionado.puntos_usados).toFixed(0)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-[9px] font-black text-white/30 uppercase italic"><span>Cargo Envío</span><span>$40</span></div>
+                    
+                    <div className="flex justify-between items-center text-amber-400 pt-2 border-t border-white/5 mt-2">
+                        <div className="flex items-center gap-2"><Coins size={12}/> <span className="text-[8px] font-black uppercase italic">Puntos MVP Ganados</span></div>
+                        <span className="text-xs font-[1000]">+{parseCurrency(pedidoSeleccionado.puntos_generados).toFixed(0)}</span>
+                    </div>
                 </div>
-                <div className="flex-1 bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-center">
-                   <span className="text-[7px] font-black uppercase text-slate-300 tracking-widest mb-1 italic">Método Pago</span>
-                   <span className="text-xs font-black uppercase italic text-[#1a2e05]">{pedidoSeleccionado?.metodo_pago || "Efectivo"}</span>
+
+                <div className="flex justify-between items-end pt-4 border-t border-white/10">
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase italic text-emerald-500 tracking-[0.2em]">Total Neto</span>
+                        <span className="text-[7px] font-black text-white/20 uppercase tracking-widest mt-0.5">Ticket Oficial</span>
+                    </div>
+                    <span className="text-5xl font-[1000] text-white italic tracking-tighter leading-none">${parseCurrency(pedidoSeleccionado.total).toFixed(0)}</span>
                 </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -284,43 +269,12 @@ export default function PedidosTienda() {
   );
 }
 
-function StatCard({ label, val, color, icon }) {
-  const themes = {
-    slate: "bg-white text-slate-300 border-slate-100 shadow-sm",
-    yellow: "bg-amber-50 text-amber-500 border-amber-100",
-    blue: "bg-blue-50 text-blue-500 border-blue-100",
-    purple: "bg-purple-50 text-purple-500 border-purple-100",
-    green: "bg-emerald-50 text-emerald-500 border-emerald-100"
-  };
-  return (
-    <div className={`p-6 rounded-[2rem] border transition-all hover:shadow-lg hover:-translate-y-0.5 ${themes[color]}`}>
-      <div className="flex justify-between items-start mb-3">
-        <p className="text-[8px] font-black uppercase tracking-widest italic opacity-60">{label}</p>
-        <div className="opacity-40">{icon}</div>
-      </div>
-      <p className="text-3xl font-[1000] text-[#1a2e05] italic tracking-tighter leading-none">{val}</p>
-    </div>
-  );
-}
-
-function DetailRow({ icon, label, val }) {
-  return (
-    <div className="flex gap-3 items-center">
-      <div className="text-emerald-500 flex-shrink-0">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">{label}</p>
-        <p className="text-[9px] font-black text-[#1a2e05] uppercase italic leading-tight truncate">{val || '---'}</p>
-      </div>
-    </div>
-  );
-}
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'pendiente': return 'bg-amber-50 text-amber-600 border-amber-100';
-    case 'procesando': return 'bg-blue-50 text-blue-600 border-blue-100';
-    case 'enviado': return 'bg-purple-50 text-purple-600 border-purple-100';
-    case 'entregado': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-    default: return 'bg-slate-50 text-slate-400 border-slate-100';
+const getStatusColorDesign = (status) => {
+  switch (status) { 
+    case 'pendiente': return 'bg-amber-100 text-amber-600'; 
+    case 'procesando': return 'bg-blue-100 text-blue-600'; 
+    case 'enviado': return 'bg-purple-100 text-purple-600'; 
+    case 'entregado': return 'bg-emerald-100 text-emerald-600'; 
+    default: return 'bg-slate-100 text-slate-400'; 
   }
 };
