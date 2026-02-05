@@ -1,6 +1,6 @@
 import React from "react";
-import { StarIcon, Zap, Flame, Check, Trophy } from "lucide-react";
-import { Link } from "react-router-dom";
+import { StarIcon, Zap, Flame, Check, Trophy, ArrowRight, Settings2 } from "lucide-react"; // Agregamos Settings2
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cart/cartSlice";
 import { useNotify } from "../../hook/useNotify";
@@ -8,6 +8,7 @@ import { useNotify } from "../../hook/useNotify";
 const ProductCard = ({ product }) => {
   const currency = "$";
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const cartItems = useSelector((state) => state.cart.cartItems) || [];
   const notify = useNotify();
 
@@ -15,8 +16,11 @@ const ProductCard = ({ product }) => {
   const displayNombre = product.nombre || product.name || "PRODUCTO";
   const displayImagen = product.imagen_url || product.image || (product.images && product.images[0]) || "/default-image.png";
   const productId = product.id;
+  const categoria = (product.categoria || "").toUpperCase().trim();
 
-  // Verificamos si el producto ya está fichado
+  // 🚨 REGLA DE NEGOCIO: Alitas y Boneless requieren configuración
+  const requiereConfiguracion = categoria === "ALITAS" || categoria === "BONELESS";
+
   const isInCart = cartItems.some(item => String(item.id).split('-')[0] === String(productId));
 
   const precioOriginal = Number(product.precio_original) || 0;
@@ -27,6 +31,12 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (requiereConfiguracion) {
+      notify.success("¡Excelente elección! Personaliza tu jugada.");
+      navigate(`/product/${productId}`);
+      return;
+    }
 
     dispatch(addToCart({ 
       ...product,
@@ -47,8 +57,8 @@ const ProductCard = ({ product }) => {
         
         {/* BADGES SUPERIORES */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-            {hasOffer && (
-            <div className="bg-red-500 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200 animate-pulse italic uppercase tracking-wider">
+            {hasOffer && !requiereConfiguracion && ( // No mostramos oferta si requiere configuración para no confundir
+            <div className="bg-red-500 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg italic uppercase tracking-wider">
                 <Flame size={10} fill="currentColor" /> OFERTA
             </div>
             )}
@@ -79,18 +89,28 @@ const ProductCard = ({ product }) => {
             {displayNombre}
           </h3>
           
-          {/* LÍNEA DIVISORA SUTIL WINGOOL */}
           <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent mb-3"></div>
 
-          {/* SECCIÓN PRECIO */}
-          <div className="flex items-baseline gap-2 mb-2">
-             <span className="text-xl font-[1000] text-[#1a2e05] italic tracking-tighter leading-none">
-                {currency}{precioActual.toFixed(0)}
-             </span>
-             {hasOffer && (
-                <span className="text-[10px] text-slate-300 line-through font-bold italic">
-                  {currency}{precioOriginal.toFixed(0)}
-                </span>
+          {/* SECCIÓN PRECIO CONDICIONAL */}
+          <div className="flex items-baseline gap-2 mb-2 min-h-[24px]">
+             {requiereConfiguracion ? (
+               <div className="flex items-center gap-1.5 text-emerald-600 animate-pulse">
+                 <Settings2 size={12} strokeWidth={3} />
+                 <span className="text-[9px] font-[1000] uppercase italic tracking-tighter">
+                   PRECIO SEGÚN TAMAÑO
+                 </span>
+               </div>
+             ) : (
+               <>
+                 <span className="text-xl font-[1000] text-[#1a2e05] italic tracking-tighter leading-none">
+                    {currency}{precioActual.toFixed(0)}
+                 </span>
+                 {hasOffer && (
+                    <span className="text-[10px] text-slate-300 line-through font-bold italic">
+                      {currency}{precioOriginal.toFixed(0)}
+                    </span>
+                 )}
+               </>
              )}
           </div>
         </div>
@@ -100,10 +120,23 @@ const ProductCard = ({ product }) => {
         {!isInCart ? (
           <button
             onClick={handleAddToCart}
-            className="w-full bg-[#1a2e05] text-white py-3 rounded-xl font-[1000] uppercase text-[10px] tracking-[0.2em] italic flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all active:scale-95 shadow-md group/btn"
+            className={`w-full py-3 rounded-xl font-[1000] uppercase text-[10px] tracking-[0.2em] italic flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md group/btn ${
+              requiereConfiguracion 
+              ? "bg-emerald-500 text-[#1a2e05] hover:bg-emerald-400" 
+              : "bg-[#1a2e05] text-white hover:bg-emerald-600"
+            }`}
           >
-            <Zap size={14} fill="currentColor" className="text-emerald-400 group-hover/btn:text-white transition-colors" />
-            FICHAR
+            {requiereConfiguracion ? (
+              <>
+                <ArrowRight size={14} strokeWidth={3} />
+                PERSONALIZAR
+              </>
+            ) : (
+              <>
+                <Zap size={14} fill="currentColor" className="text-emerald-400 group-hover/btn:text-white transition-colors" />
+                FICHAR
+              </>
+            )}
           </button>
         ) : (
           <div className="w-full bg-emerald-50 text-emerald-600 py-3 rounded-xl font-[1000] uppercase text-[9px] tracking-[0.15em] italic flex items-center justify-center gap-2 border border-emerald-100 shadow-inner">
@@ -113,7 +146,7 @@ const ProductCard = ({ product }) => {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }

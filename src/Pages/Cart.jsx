@@ -94,16 +94,24 @@ export default function Cart() {
                     {item.nombre || "PRODUCTO SIN NOMBRE"}
                   </h3>
                   
-                  {/* EXTRAS REFINADOS */}
-                  {item.extras && item.extras.length > 0 && (
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">
-                      {item.extras.map((ex) => (
+                  {/* --- SECCIÓN DE SABOR Y EXTRAS --- */}
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">
+                    {/* ETIQUETA DE SALSA (NUEVA) */}
+                    {item.salsa && (
+                      <span className="text-[8px] bg-orange-500 text-white px-2 py-1 rounded-lg font-black uppercase italic border border-orange-600 shadow-lg shadow-orange-200/50 flex items-center gap-1">
+                        <Zap size={10} fill="currentColor" /> SABOR: {item.salsa}
+                      </span>
+                    )}
+
+                    {/* TUS EXTRAS ORIGINALES (SIN MODIFICAR) */}
+                    {item.extras && item.extras.length > 0 && (
+                      item.extras.map((ex) => (
                         <span key={ex.id} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg font-black uppercase italic border border-emerald-100/50">
                           + {ex.nombre}
                         </span>
-                      ))}
-                    </div>
-                  )}
+                      ))
+                    )}
+                  </div>
 
                   <div>
                     <span className="text-emerald-600 font-[1000] text-xl italic tracking-tighter">

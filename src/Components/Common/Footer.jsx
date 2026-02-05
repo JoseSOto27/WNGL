@@ -140,28 +140,7 @@ const Footer = () => {
       </footer>
 
       {/* BOTÓN WHATSAPP FLOTANTE WINGOOL STYLE */}
-      <a
-        href="https://wa.me/527751521896?text=Hola%20Wingool,%20quiero%20hacer%20un%20pedido"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="
-          fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[99]
-          bg-[#1a2e05] text-white p-4 md:p-5 rounded-[2.2rem]
-          shadow-[0_20px_50px_rgba(16,185,129,0.3)]
-          transition-all duration-500
-          hover:scale-110 active:scale-95
-          border border-emerald-500/30
-          flex items-center gap-3 group
-        "
-      >
-        <div className="relative">
-            <div className="absolute inset-0 bg-emerald-500 blur-xl opacity-0 group-hover:opacity-60 transition-opacity"></div>
-            <MessageCircle size={24} className="relative z-10 text-emerald-400 group-hover:text-white transition-colors" />
-        </div>
-        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-700 font-[1000] uppercase italic text-xs tracking-[0.15em] whitespace-nowrap">
-            ¡PEDIR AHORA!
-        </span>
-      </a>
+
     </>
   );
 };
