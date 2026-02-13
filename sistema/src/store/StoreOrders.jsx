@@ -4,7 +4,7 @@ import { supabase } from "../services/supabase";
 import { 
   Clock, Package, Truck, Phone, MapPin, User, Star, X, 
   ChevronRight, Zap, Trophy, Receipt, Ticket, Coins, CreditCard, Banknote, RefreshCcw,
-  Droplets // Icono para la salsa
+  Droplets 
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -153,7 +153,7 @@ export default function StoreOrders() {
         </table>
       </div>
 
-      {/* MODAL DETALLES ALTA PRECISIÓN (ANIMADO) */}
+      {/* MODAL DETALLES */}
       {modalAbierto && pedidoSeleccionado && (
         <div className="fixed inset-0 bg-[#0f1a04]/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden border-b-[12px] border-emerald-500 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto">
@@ -221,7 +221,6 @@ export default function StoreOrders() {
                         <span className="font-bold text-[10px] text-slate-300 italic">${parseCurrency(item.subtotal || (item.precio * (item.quantity || item.cantidad))).toFixed(0)}</span>
                       </div>
                       
-                      {/* --- SECCIÓN DE SABOR (SALSA) NUEVA --- */}
                       {item.salsa && (
                         <div className="mt-2 pl-11">
                           <span className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-2.5 py-1 rounded-md border border-orange-100 italic flex items-center gap-1 w-fit shadow-sm">
@@ -230,23 +229,28 @@ export default function StoreOrders() {
                         </div>
                       )}
 
-                      {/* EXTRAS / INGREDIENTES */}
-                      {item.extras && item.extras.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2 pl-11">
-                          {item.extras.map((ex, idx) => (
-                            <span key={idx} className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-2 py-0.5 rounded-md border border-emerald-100 italic">+ {ex.nombre}</span>
-                          ))}
-                        </div>
-                      )}
+                      {/* ✅ COMANDA DE EXTRAS UNIFICADA Y SIN DUPLICADOS */}
+                      {(() => {
+                        const todosLosExtras = [...(item.extras || []), ...(item.ingredientes || [])];
+                        const extrasUnicos = todosLosExtras.filter((extra, index, self) =>
+                          index === self.findIndex((e) => e.nombre === extra.nombre)
+                        );
 
-                      {/* RESPALDO PARA ESTRUCTURA ANTERIOR SI APLICARA */}
-                      {item.ingredientes && item.ingredientes.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2 pl-11">
-                          {item.ingredientes.map((ing, idx) => (
-                            <span key={idx} className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-2 py-0.5 rounded-md border border-emerald-100 italic">+ {ing.nombre}</span>
-                          ))}
-                        </div>
-                      )}
+                        if (extrasUnicos.length === 0) return null;
+
+                        return (
+                          <div className="flex flex-wrap gap-1.5 mt-2 pl-11">
+                            {extrasUnicos.map((ex, idx) => (
+                              <span 
+                                key={idx} 
+                                className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-2 py-0.5 rounded-md border border-emerald-100 italic"
+                              >
+                                + {ex.nombre}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
                   </div>
                 ))}
               </div>
