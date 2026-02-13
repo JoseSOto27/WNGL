@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
 import { X, Loader2, ShieldCheck } from 'lucide-react';
 
-// 🚨 REEMPLAZA CON TU PUBLIC KEY (la que empieza con APP_USR-...)
+// ✅ TU PUBLIC KEY
 initMercadoPago('APP_USR-b7abe48e-dcf5-47b4-be82-80c541a78e4a');
 
 const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
@@ -12,8 +12,12 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
     useEffect(() => {
         const generatePreference = async () => {
             try {
-                // ✅ CORRECCIÓN: Se añadieron las comillas invertidas ` al inicio y final de la URL
-                const response = await fetch(`${import.meta.env.API_URL}/create_preference`, {
+                // 🚀 URL DIRECTA PARA EVITAR EL ERROR 'UNDEFINED'
+                const apiUrl = "https://wngl-5fb1.vercel.app/create_preference";
+                
+                console.log("Conectando a la API en:", apiUrl);
+
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -22,13 +26,17 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
                         userData 
                     })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Error en el servidor: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 if (data.id) {
                     setPreferenceId(data.id);
                 }
             } catch (err) {
-                console.error("Error al conectar con el servidor de cobro", err);
+                console.error("❌ Error al conectar con el servidor de cobro:", err);
             } finally {
                 setLoading(false);
             }
