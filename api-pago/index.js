@@ -65,7 +65,7 @@ app.post('/create_preference', async (req, res) => {
     }
 });
 
-// 3. WEBHOOK (Suma de puntos garantizada)
+// 3. WEBHOOK CON FILTRO ANTIDUPLICADOS PARA EXTRAS
 app.post('/webhook', async (req, res) => {
     const { query, body } = req;
     const action = query.topic || query.type || body.action || body.type;
@@ -89,56 +89,55 @@ app.post('/webhook', async (req, res) => {
                 const userId = meta.user_id;
                 const refFinal = meta.referencia_propia || data.external_reference;
 
-                console.log(`💰 Procesando: ${puntosNuevos} puntos para el ID: ${userId}`);
+                // --- 🛡️ PROCESO DE LIMPIEZA DE CARRITO ---
+                let carritoOriginal = JSON.parse(meta.carrito);
+                
+                // Filtramos extras duplicados en cada producto antes de guardar
+                const carritoLimpio = carritoOriginal.map(producto => {
+                    if (producto.extras && Array.isArray(producto.extras)) {
+                        producto.extras = producto.extras.filter((extra, index, self) =>
+                            index === self.findIndex((e) => e.id === extra.id || e.nombre === extra.nombre)
+                        );
+                    }
+                    return producto;
+                });
 
-                // PASO 1: GUARDAR PEDIDO
+                console.log(`💰 Pago aprobado. Limpiando ingredientes para el cliente: ${userId}`);
+
+                // PASO 1: GUARDAR PEDIDO (Con carrito ya filtrado)
                 const { error: dbError } = await supabase.from('pedidos_v2').insert([{
                     referencia_externa: refFinal,
                     customer_id: userId,
                     cliente_nombre: meta.cliente_nombre,
                     cliente_telefono: meta.cliente_telefono,
                     direccion_entrega: meta.direccion,
-                    productos: JSON.parse(meta.carrito), 
+                    productos: carritoLimpio, // ✅ Los extras ya no irán repetidos
                     total: totalPago,      
                     metodo_pago: "Tarjeta (Mercado Pago)",
                     estado: "pagado",
                     puntos_generados: puntosNuevos
                 }]);
 
-                // ✅ Si el error es por duplicado (23505), lo ignoramos y seguimos para sumar puntos
-                if (dbError && dbError.code !== '23505') {
-                    console.error("❌ Error al insertar pedido:", dbError.message);
-                } else if (dbError?.code === '23505') {
-                    console.log("ℹ️ El pedido ya existía (duplicado), procediendo a sumar puntos.");
+                if (dbError && dbError.code === '23505') {
+                    console.log("ℹ️ El pedido ya existía, deteniendo para evitar doble suma de puntos.");
+                    return res.sendStatus(200); 
                 }
 
-                // PASO 2: ACTUALIZAR PUNTOS EN LA COLUMNA 'points'
+                // PASO 2: ACTUALIZAR PUNTOS EN PROFILES
                 if (userId) {
-                    // Consultamos el saldo actual usando el ID del cliente
                     const { data: profiles, error: profileError } = await supabase
                         .from('profiles')
                         .select('points')
                         .eq('id', userId);
 
-                    if (profileError) {
-                        console.error("❌ Error Supabase al consultar puntos:", profileError.message);
-                    } else if (!profiles || profiles.length === 0) {
-                        // 🚩 Si sale este mensaje, el RLS de Supabase sigue bloqueando la lectura
-                        console.error(`⚠️ No se encontró perfil para el ID: ${userId}. Revisa el RLS en Supabase.`);
-                    } else {
-                        const saldoActual = profiles[0].points || 0;
-                        const nuevoSaldo = saldoActual + puntosNuevos;
-
-                        const { error: updateError } = await supabase
+                    if (!profileError && profiles && profiles.length > 0) {
+                        const nuevoSaldo = (profiles[0].points || 0) + puntosNuevos;
+                        await supabase
                             .from('profiles')
                             .update({ points: nuevoSaldo })
                             .eq('id', userId);
-
-                        if (updateError) {
-                            console.error("❌ Error al actualizar saldo:", updateError.message);
-                        } else {
-                            console.log(`✅ ¡PUNTOS SUMADOS! Saldo anterior: ${saldoActual} -> Nuevo saldo: ${nuevoSaldo}`);
-                        }
+                        
+                        console.log(`✅ Puntos sumados: ${nuevoSaldo}`);
                     }
                 }
             }
@@ -152,7 +151,7 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => console.log(`🚀 API en puerto ${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 API Wingool Online`));
 }
 
 module.exports = app;
