@@ -13,7 +13,7 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
         const generatePreference = async () => {
             try {
                 // ✅ CORRECCIÓN: Se añadieron las comillas invertidas ` al inicio y final de la URL
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/create_preference`, {
+                const response = await fetch(`${import.meta.env.API_URL}/create_preference`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 

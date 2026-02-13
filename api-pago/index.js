@@ -5,10 +5,12 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-// 1. CONFIGURACIÓN DE CLIENTES
+// ✅ Configuración de CORS para permitir peticiones desde tu Frontend en Vercel
+app.use(cors());
+app.use(express.json());
+
+// 1. CONFIGURACIÓN DE CLIENTES (Variables desde el panel de Vercel)
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 
@@ -17,10 +19,8 @@ app.post('/create_preference', async (req, res) => {
   try {
     const { items, userData, shippingCost = 40 } = req.body;
     
-    // Generamos referencia única (ID de rastreo propio)
     const miReferenciaPropia = `ORDER-${Date.now()}-${userData?.id || 'anon'}`;
 
-    // Preparamos los productos del carrito
     const mpItems = items.map(item => ({
       title: item.nombre || "Producto Wingool",
       unit_price: Number(item.precio),
@@ -28,7 +28,7 @@ app.post('/create_preference', async (req, res) => {
       currency_id: 'MXN'
     }));
 
-    // 🚚 Agregamos el cargo de envío
+    // Cargo de envío
     mpItems.push({
       title: "Costo de Envío",
       unit_price: Number(shippingCost),
@@ -42,28 +42,33 @@ app.post('/create_preference', async (req, res) => {
         items: mpItems,
         external_reference: miReferenciaPropia,
         
-        // 💳 BLOQUEO ESTRICTO: SOLO TARJETAS (Elimina OXXO, SPEI y BBVA Transferencia)
+        // 💳 BLOQUEO ESTRICTO: SOLO TARJETAS
         payment_methods: {
           excluded_payment_types: [
-            { id: "ticket" },        // Bloquea Efectivo (OXXO, 7-Eleven)
-            { id: "bank_transfer" }, // Bloquea Transferencias (SPEI, BBVA)
-            { id: "atm" }            // Bloquea Red de cajeros
+            { id: "ticket" },        
+            { id: "bank_transfer" }, 
+            { id: "atm" }            
           ],
           excluded_payment_methods: [
-             { id: "bancomer" },     // Bloquea específicamente la opción de BBVA
-             { id: "serfin" },       // Santander
-             { id: "banamex" },      // Citibanamex
+             { id: "bancomer" },     
+             { id: "serfin" },       
+             { id: "banamex" },      
              { id: "bancomer_ticket" },
              { id: "serfin_ticket" }
           ],
           installments: 12 
         },
 
+        // ✅ REEMPLAZA "tu-frontend-wngl.vercel.app" con la URL real de tu página web
         back_urls: {
-          success: "http://localhost:5173/mi-cuenta",
-          failure: "http://localhost:5173/cart"
+          success: "https://wngl.vercel.app/mi-cuenta",
+          failure: "https://wngl.vercel.app/cart"
         },
-        notification_url: "https://maxine-unskilled-lavinia.ngrok-free.dev/webhook",
+        auto_return: "approved",
+
+        // ✅ URL de tu API en Vercel (Donde vive este código)
+        notification_url: "https://wngl-5fb1.vercel.app/webhook",
+
         metadata: {
           user_id: userData?.id,
           cliente_nombre: userData?.name || "Cliente Wingool",
@@ -75,7 +80,7 @@ app.post('/create_preference', async (req, res) => {
       }
     });
 
-    console.log(`✅ Preferencia Creada. ID: ${result.id} | Ref: ${miReferenciaPropia}`);
+    console.log(`✅ Preferencia Creada: ${result.id}`);
     res.json({ id: result.id });
   } catch (error) {
     console.error("❌ ERROR AL CREAR PREFERENCIA:", error.message);
@@ -83,7 +88,7 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
-// 3. WEBHOOK (GUARDADO AUTOMÁTICO EN SUPABASE)
+// 3. WEBHOOK (PROCESAMIENTO DE PAGO REAL)
 app.post('/webhook', async (req, res) => {
   const { query } = req;
   const topic = query.topic || query.type;
@@ -101,9 +106,7 @@ app.post('/webhook', async (req, res) => {
         const meta = data.metadata;
         const refFinal = meta.referencia_propia || data.external_reference;
 
-        console.log(`💰 Pago de $${data.transaction_amount} aprobado. Ref: ${refFinal}`);
-
-        // INSERTAMOS EN SUPABASE
+        // INSERTAR EN SUPABASE
         const { error: dbError } = await supabase.from('pedidos_v2').insert([{
           referencia_externa: refFinal,
           customer_id: meta.user_id,
@@ -118,13 +121,9 @@ app.post('/webhook', async (req, res) => {
         }]);
 
         if (dbError) {
-          if (dbError.code === '23505') {
-            console.log("🚫 Duplicado bloqueado por Referencia Única.");
-            return res.sendStatus(200);
-          }
           console.error("❌ ERROR DE SUPABASE:", dbError.message);
         } else {
-          console.log("✅ PEDIDO GUARDADO CON ÉXITO");
+          console.log("✅ PEDIDO GUARDADO EXITOSAMENTE");
         }
       }
     }
@@ -135,8 +134,12 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`\n🚀 SERVIDOR WINGOOL PAY LISTO`);
-  console.log(`💳 Configurado: SOLO TARJETAS (BBVA/SPEI/OXXO Bloqueados)`);
-});
+// ✅ EXPORTAR PARA VERCEL (No usar app.listen solo para producción)
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor local corriendo en puerto ${PORT}`);
+  });
+}
+
+module.exports = app;
