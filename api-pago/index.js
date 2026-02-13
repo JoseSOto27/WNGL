@@ -5,8 +5,6 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
-
-// Configuración de Middlewares
 app.use(cors());
 app.use(express.json());
 
@@ -18,7 +16,6 @@ const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN 
 app.post('/create_preference', async (req, res) => {
     try {
         const { items, userData, shippingCost = 40 } = req.body;
-        // El ID del cliente se envía en metadata para recuperarlo en el Webhook
         const miReferenciaPropia = `ORDER-${Date.now()}-${userData?.id || 'anon'}`;
 
         const mpItems = items.map(item => ({
@@ -68,11 +65,9 @@ app.post('/create_preference', async (req, res) => {
     }
 });
 
-// 3. WEBHOOK ULTRA-ROBUSTO (Suma de puntos y guardado de pedido)
+// 3. WEBHOOK (Suma de puntos garantizada)
 app.post('/webhook', async (req, res) => {
     const { query, body } = req;
-    
-    // Captura de datos flexible (soporta múltiples formatos de Mercado Pago)
     const action = query.topic || query.type || body.action || body.type;
     const paymentId = query.id || query['data.id'] || (body.data ? body.data.id : null);
 
@@ -82,7 +77,6 @@ app.post('/webhook', async (req, res) => {
         if (action === "payment" || action === "payment.created" || action === "payment.updated") {
             if (!paymentId) return res.sendStatus(200);
 
-            // Consultar detalles del pago
             const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
                 headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
             });
@@ -95,9 +89,9 @@ app.post('/webhook', async (req, res) => {
                 const userId = meta.user_id;
                 const refFinal = meta.referencia_propia || data.external_reference;
 
-                console.log(`💰 Procesando: ${puntosNuevos} puntos para el ID de Cliente: ${userId}`);
+                console.log(`💰 Procesando: ${puntosNuevos} puntos para el ID: ${userId}`);
 
-                // PASO 1: GUARDAR PEDIDO EN pedidos_v2
+                // PASO 1: GUARDAR PEDIDO
                 const { error: dbError } = await supabase.from('pedidos_v2').insert([{
                     referencia_externa: refFinal,
                     customer_id: userId,
@@ -111,19 +105,25 @@ app.post('/webhook', async (req, res) => {
                     puntos_generados: puntosNuevos
                 }]);
 
-                if (dbError) console.error("❌ Error al insertar pedido:", dbError.message);
+                // ✅ Si el error es por duplicado (23505), lo ignoramos y seguimos para sumar puntos
+                if (dbError && dbError.code !== '23505') {
+                    console.error("❌ Error al insertar pedido:", dbError.message);
+                } else if (dbError?.code === '23505') {
+                    console.log("ℹ️ El pedido ya existía (duplicado), procediendo a sumar puntos.");
+                }
 
-                // PASO 2: ACTUALIZAR PUNTOS EN profiles (COLUMNA points)
+                // PASO 2: ACTUALIZAR PUNTOS EN LA COLUMNA 'points'
                 if (userId) {
-                    // Consultamos el saldo actual (usamos array para evitar error de coercion)
+                    // Consultamos el saldo actual usando el ID del cliente
                     const { data: profiles, error: profileError } = await supabase
                         .from('profiles')
                         .select('points')
                         .eq('id', userId);
 
                     if (profileError) {
-                        console.error("❌ Error al consultar perfil:", profileError.message);
+                        console.error("❌ Error Supabase al consultar puntos:", profileError.message);
                     } else if (!profiles || profiles.length === 0) {
+                        // 🚩 Si sale este mensaje, el RLS de Supabase sigue bloqueando la lectura
                         console.error(`⚠️ No se encontró perfil para el ID: ${userId}. Revisa el RLS en Supabase.`);
                     } else {
                         const saldoActual = profiles[0].points || 0;
@@ -135,7 +135,7 @@ app.post('/webhook', async (req, res) => {
                             .eq('id', userId);
 
                         if (updateError) {
-                            console.error("❌ Error al actualizar la columna points:", updateError.message);
+                            console.error("❌ Error al actualizar saldo:", updateError.message);
                         } else {
                             console.log(`✅ ¡PUNTOS SUMADOS! Saldo anterior: ${saldoActual} -> Nuevo saldo: ${nuevoSaldo}`);
                         }
@@ -150,10 +150,9 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-// Configuración para Vercel
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => console.log(`🚀 API Wingool Corriendo en puerto ${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 API en puerto ${PORT}`));
 }
 
 module.exports = app;
