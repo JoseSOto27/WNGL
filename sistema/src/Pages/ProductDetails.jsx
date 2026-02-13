@@ -112,13 +112,16 @@ const ProductDetails = () => {
     return base + costoExtras;
   }, [localProduct, categoriaConfigurable, selectedSize, selectedExtras]);
 
+  // ✅ CORRECCIÓN DE DUPLICADOS: Usamos 'prev' para asegurar unicidad
   const toggleExtra = (item) => {
-    const isSelected = selectedExtras.find((e) => e.id === item.id);
-    if (isSelected) {
-      setSelectedExtras(selectedExtras.filter((e) => e.id !== item.id));
-    } else {
-      setSelectedExtras([...selectedExtras, item]);
-    }
+    setSelectedExtras((prev) => {
+      const isSelected = prev.find((e) => e.id === item.id);
+      if (isSelected) {
+        return prev.filter((e) => e.id !== item.id);
+      } else {
+        return [...prev, item];
+      }
+    });
   };
 
   const addToCartHandler = () => {
@@ -249,7 +252,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* SECCIÓN CORREGIDA DE RECOMENDADOS */}
             {quickMenu.length > 0 && (
               <div className="space-y-5 pt-8 border-t border-slate-100">
                   <h3 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2 italic">
@@ -257,7 +259,6 @@ const ProductDetails = () => {
                   </h3>
                   <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1">
                       {quickMenu.map((item) => {
-                        // ✅ CORRECCIÓN DE CAMPOS PARA QUE COINCIDAN CON REDUX
                         const nombreItem = item.name || item.nombre;
                         const imagenItem = (item.images && item.images[0]) || item.imagen_url || "/default-image.png";
                         const precioItem = item.precio_oferta || item.precio_original || item.precio;
@@ -272,7 +273,7 @@ const ProductDetails = () => {
                                 <p className="text-[11px] font-[1000] text-emerald-600 italic tracking-tighter">${Number(precioItem).toFixed(0)}</p>
                                 <button onClick={() => {
                                   navigate(`/product/${item.id}`);
-                                  window.scrollTo(0,0); // Para que suba al inicio al cambiar de plato
+                                  window.scrollTo(0,0);
                                 }} className="bg-slate-50 text-[#1a2e05] p-1.5 rounded-lg hover:bg-[#1a2e05] hover:text-white transition-all">
                                     <PlusCircle size={14} strokeWidth={2.5} />
                                 </button>
