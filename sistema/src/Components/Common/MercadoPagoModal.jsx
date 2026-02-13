@@ -5,7 +5,6 @@ import { X, Loader2, ShieldCheck } from 'lucide-react';
 // 🚨 REEMPLAZA CON TU PUBLIC KEY (la que empieza con APP_USR-...)
 initMercadoPago('APP_USR-b7abe48e-dcf5-47b4-be82-80c541a78e4a');
 
-// ✅ Agregamos userData como prop para recibir la info del cliente
 const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
     const [preferenceId, setPreferenceId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -13,17 +12,17 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
     useEffect(() => {
         const generatePreference = async () => {
             try {
-                // Llamamos a tu servidor de api-pago enviando también userData
-                const response = await fetch('http://localhost:3000/create_preference', {
+                // ✅ CORRECCIÓN: Se añadieron las comillas invertidas ` al inicio y final de la URL
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/create_preference`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // ✅ Enviamos items y userData al servidor para que el Webhook los procese
                     body: JSON.stringify({ 
                         items: cartItems, 
                         total,
                         userData 
                     })
                 });
+                
                 const data = await response.json();
                 if (data.id) {
                     setPreferenceId(data.id);
