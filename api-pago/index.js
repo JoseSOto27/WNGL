@@ -5,8 +5,6 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
-
-// ✅ Configuración de CORS y JSON
 app.use(cors());
 app.use(express.json());
 
@@ -14,7 +12,7 @@ app.use(express.json());
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 
-// 2. RUTA PARA CREAR PREFERENCIA (Frontend llama aquí)
+// 2. RUTA PARA CREAR PREFERENCIA
 app.post('/create_preference', async (req, res) => {
   try {
     const { items, userData, shippingCost = 40 } = req.body;
@@ -67,41 +65,36 @@ app.post('/create_preference', async (req, res) => {
   }
 });
 
-// 3. WEBHOOK CORREGIDO (Aquí se suman los puntos)
+// 3. WEBHOOK (GUARDA PEDIDO Y SUMA PUNTOS EN COLUMNA 'POINTS')
 app.post('/webhook', async (req, res) => {
   const { query, body } = req;
-  
-  // ✅ Detectamos el tipo de evento y el ID del pago sin importar el formato de Mercado Pago
   const action = query.topic || query.type || body.action || body.type;
   const paymentId = query.id || query['data.id'] || (body.data ? body.data.id : null);
 
-  console.log(`🔔 Evento recibido: ${action} | ID: ${paymentId}`);
+  console.log(`🔔 Webhook recibido: ${action} | ID: ${paymentId}`);
 
   try {
-    // Validamos que sea un evento de pago
     if (action === "payment" || action === "payment.created" || action === "payment.updated") {
-      
       if (!paymentId) return res.sendStatus(200);
 
-      // Consultamos los detalles reales del pago a Mercado Pago
       const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
       });
-      
       const data = await response.json();
 
-      // ✅ Solo si el pago está aprobado sumamos puntos y guardamos
       if (data.status === "approved") {
         const meta = data.metadata;
         const totalPago = data.transaction_amount;
+        const puntosNuevos = Math.floor(totalPago * 0.05);
+        const userId = meta.user_id;
         const refFinal = meta.referencia_propia || data.external_reference;
 
-        console.log(`💰 Pago aprobado por $${totalPago}. Generando puntos...`);
+        console.log(`💰 Pago aprobado. Sumando ${puntosNuevos} a la columna 'points' para el usuario ${userId}`);
 
-        // INSERTAR EN SUPABASE
+        // PASO A: INSERTAR EL PEDIDO EN PEDIDOS_V2
         const { error: dbError } = await supabase.from('pedidos_v2').insert([{
           referencia_externa: refFinal,
-          customer_id: meta.user_id,
+          customer_id: userId,
           cliente_nombre: meta.cliente_nombre,
           cliente_telefono: meta.cliente_telefono,
           direccion_entrega: meta.direccion,
@@ -109,17 +102,42 @@ app.post('/webhook', async (req, res) => {
           total: totalPago,      
           metodo_pago: "Tarjeta (Mercado Pago)",
           estado: "pagado",
-          puntos_generados: Math.floor(totalPago * 0.05) // 5% en puntos
+          puntos_generados: puntosNuevos
         }]);
 
         if (dbError) {
-          if (dbError.code === '23505') {
-            console.log("🚫 El pedido ya estaba registrado (Duplicado evitado).");
-          } else {
-            console.error("❌ ERROR DE SUPABASE:", dbError.message);
-          }
+          console.error("❌ ERROR AL GUARDAR PEDIDO:", dbError.message);
         } else {
-          console.log("✅ PUNTOS SUMADOS Y PEDIDO GUARDADO");
+          console.log("✅ PEDIDO GUARDADO");
+
+          // PASO B: ACTUALIZAR COLUMNA 'POINTS' EN TABLA 'PROFILES'
+          if (userId) {
+            // 1. Obtenemos el saldo actual de la columna 'points'
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('points') // <--- Cambiado a 'points'
+              .eq('id', userId)
+              .single();
+
+            if (profileError) {
+              console.error("❌ ERROR AL BUSCAR PERFIL:", profileError.message);
+            } else {
+              const saldoAnterior = profile.points || 0;
+              const nuevoSaldo = saldoAnterior + puntosNuevos;
+
+              // 2. Actualizamos la columna 'points' con la suma
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ points: nuevoSaldo }) // <--- Cambiado a 'points'
+                .eq('id', userId);
+
+              if (updateError) {
+                console.error("❌ ERROR AL ACTUALIZAR PUNTOS:", updateError.message);
+              } else {
+                console.log(`✅ PUNTOS SUMADOS: ${saldoAnterior} + ${puntosNuevos} = ${nuevoSaldo}`);
+              }
+            }
+          }
         }
       }
     }
@@ -130,12 +148,9 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// 4. CONFIGURACIÓN DE PUERTO PARA VERCEL
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor Wingool API listo en puerto ${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`🚀 Servidor listo`));
 }
 
 module.exports = app;
