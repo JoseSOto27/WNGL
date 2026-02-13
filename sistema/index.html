@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>Wingool Company</title>
+    <meta name="apple-mobile-web-app-title" content="Wingool Delivery">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@1,900&display=swap" rel="stylesheet">
+
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">  
+    <meta name="theme-color" content="#1A2E05">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> 
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+</head>
+
+<body style="margin: 0; background-color: #ffffff;">
+  <div id="root">
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #ffffff;
+      z-index: 9999;
+      font-family: 'Montserrat', sans-serif;
+    ">
+      <div style="position: relative; margin-bottom: 30px;">
+        <div style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 140px;
+          height: 140px;
+          background: #49B981;
+          filter: blur(45px);
+          opacity: 0.25;
+          animation: pulse-glow 2s infinite;
+        "></div>
+
+        <img src="/logo_wingool_preloader.png" alt="Wingool Delivery" style="
+          width: 130px;
+          height: auto;
+          position: relative;
+          animation: wingool-float 2s ease-in-out infinite;
+          /* Correcciones de nitidez */
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: crisp-edges;
+          -webkit-backface-visibility: hidden;
+        ">
+      </div>
+
+      <div style="
+        width: 180px;
+        height: 5px;
+        background: #f1f1f1;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      ">
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          width: 45%;
+          background: #49B981;
+          box-shadow: 0 0 12px rgba(73, 185, 129, 0.6);
+          border-radius: 10px;
+          animation: loading-bar 1.6s infinite ease-in-out;
+        "></div>
+      </div>
+
+      <p style="
+        color: #49B981;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        text-transform: uppercase;
+        margin-top: 22px;
+        letter-spacing: 0.35em;
+        font-size: 11px;
+        text-align: center;
+      ">
+        Preparando alitas...
+      </p>
+
+      <style>
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+          50% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.25); }
+        }
+        @keyframes wingool-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes loading-bar {
+          0% { left: -50%; width: 30%; }
+          50% { width: 60%; }
+          100% { left: 110%; width: 30%; }
+        }
+      </style>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
