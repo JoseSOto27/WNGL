@@ -23,12 +23,12 @@ const limpiarExtras = (carrito) => {
     });
 };
 
-// 1. RUTA PARA CREAR PREFERENCIA (Limpiamos antes de enviar a MP)
+// 1. RUTA PARA CREAR PREFERENCIA (Con soporte para puntos dinámicos)
 app.post('/create_preference', async (req, res) => {
     try {
-        const { items, userData, shippingCost = 40 } = req.body;
+        // Recibimos 'puntosUsados' desde tu Frontend
+        const { items, userData, shippingCost = 40, puntosUsados = 0 } = req.body;
         
-        // LIMPIAMOS LOS EXTRAS AQUÍ PARA QUE MP NO RECIBA BASURA
         const carritoLimpio = limpiarExtras(items);
         const miReferenciaPropia = `ORDER-${Date.now()}-${userData?.id || 'anon'}`;
 
@@ -39,12 +39,23 @@ app.post('/create_preference', async (req, res) => {
             currency_id: 'MXN'
         }));
 
+        // Añadimos el Costo de Envío
         mpItems.push({
             title: "Costo de Envío",
             unit_price: Number(shippingCost),
             quantity: 1,
             currency_id: 'MXN'
         });
+
+        // ✅ LÓGICA DE DESCUENTO: Si el usuario aplicó puntos, los restamos aquí
+        if (Number(puntosUsados) > 0) {
+            mpItems.push({
+                title: "Descuento: Wallet Wingool",
+                unit_price: -Number(puntosUsados), // PRECIO NEGATIVO PARA DESCONTAR
+                quantity: 1,
+                currency_id: 'MXN'
+            });
+        }
 
         const preference = new Preference(client);
         const result = await preference.create({
@@ -57,7 +68,8 @@ app.post('/create_preference', async (req, res) => {
                     cliente_nombre: userData?.name || "Cliente Wingool",
                     cliente_telefono: userData?.phone || "Sin teléfono",
                     direccion: userData?.address || "Dirección no especificada",
-                    carrito: JSON.stringify(carritoLimpio), // <--- YA LIMPIO
+                    puntos_usados: puntosUsados, // Guardamos cuánto se descontó
+                    carrito: JSON.stringify(carritoLimpio),
                     referencia_propia: miReferenciaPropia
                 },
                 back_urls: {
@@ -75,7 +87,7 @@ app.post('/create_preference', async (req, res) => {
     }
 });
 
-// 2. WEBHOOK (Limpiamos de nuevo por seguridad al recibir)
+// 2. WEBHOOK (Procesa el pago y ajusta la Wallet del MVP)
 app.post('/webhook', async (req, res) => {
     const { query, body } = req;
     const action = query.topic || query.type || body.action || body.type;
@@ -92,29 +104,44 @@ app.post('/webhook', async (req, res) => {
 
             if (data.status === "approved") {
                 const meta = data.metadata;
+                const userId = meta.user_id;
+                const puntosDeduct = Number(meta.puntos_usados) || 0;
                 
-                // PARSEAR Y LIMPIAR OTRA VEZ
                 const carritoFinal = limpiarExtras(JSON.parse(meta.carrito));
 
+                // Guardar pedido en Supabase
                 const { error: dbError } = await supabase.from('pedidos_v2').insert([{
                     referencia_externa: meta.referencia_propia || data.external_reference,
-                    customer_id: meta.user_id,
+                    customer_id: userId,
                     cliente_nombre: meta.cliente_nombre,
                     cliente_telefono: meta.cliente_telefono,
                     direccion_entrega: meta.direccion,
-                    productos: carritoFinal, // <--- ELIMINAMOS REPETIDOS
+                    productos: carritoFinal,
                     total: data.transaction_amount,
                     estado: "pagado",
-                    puntos_generados: Math.floor(data.transaction_amount * 0.05)
+                    puntos_generados: Math.floor(data.transaction_amount * 0.05),
+                    puntos_usados: puntosDeduct // Guardamos registro del descuento
                 }]);
 
+                // Si es duplicado, no volvemos a sumar/restar puntos
                 if (dbError && dbError.code === '23505') return res.sendStatus(200);
 
-                // ACTUALIZAR PUNTOS
-                if (meta.user_id) {
-                    const { data: prof } = await supabase.from('profiles').select('points').eq('id', meta.user_id).single();
+                // ✅ ACTUALIZACIÓN DE WALLET (Suma nuevos y resta usados)
+                if (userId) {
+                    const { data: prof } = await supabase.from('profiles').select('points').eq('id', userId).single();
                     if (prof) {
-                        await supabase.from('profiles').update({ points: (prof.points || 0) + Math.floor(data.transaction_amount * 0.05) }).eq('id', meta.user_id);
+                        const puntosNuevos = Math.floor(data.transaction_amount * 0.05);
+                        const saldoActual = prof.points || 0;
+                        
+                        // Nuevo Saldo = Saldo anterior + Ganados - Descontados
+                        const saldoFinal = (saldoActual + puntosNuevos) - puntosDeduct;
+
+                        await supabase
+                            .from('profiles')
+                            .update({ points: saldoFinal })
+                            .eq('id', userId);
+                        
+                        console.log(`✅ Wallet de ${userId} actualizada. Saldo Final: ${saldoFinal}`);
                     }
                 }
             }
