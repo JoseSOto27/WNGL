@@ -14,7 +14,7 @@ import {
   Loader2,
   Droplets,
   Scaling,
-  Ban // Icono para agotado
+  Ban 
 } from "lucide-react";
 
 import { supabase } from "../services/supabase";
@@ -37,7 +37,6 @@ const ProductDetails = () => {
 
   const products = useSelector((state) => state.product?.list) || [];
 
-  // 🛡️ VALIDACIÓN DE DISPONIBILIDAD
   const esDisponible = localProduct?.disponible !== false && localProduct?.disponible !== "false";
 
   const OPCIONES_TAMAÑO = {
@@ -117,7 +116,7 @@ const ProductDetails = () => {
   }, [localProduct, categoriaConfigurable, selectedSize, selectedExtras]);
 
   const toggleExtra = (item) => {
-    if (!esDisponible) return; // Bloqueo si no hay stock
+    if (!esDisponible) return;
     setSelectedExtras((prev) => {
       const isSelected = prev.find((e) => e.id === item.id);
       if (isSelected) {
@@ -129,7 +128,7 @@ const ProductDetails = () => {
   };
 
   const addToCartHandler = () => {
-    if (!localProduct || !esDisponible) return; // Bloqueo final
+    if (!localProduct || !esDisponible) return;
     if (categoriaConfigurable && (!selectedSalsa || !selectedSize)) {
       notify.error("Selecciona tamaño y sabor para tu jugada");
       return;
@@ -269,6 +268,40 @@ const ProductDetails = () => {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* ✅ SECCIÓN RECUPERADA: Platillos Recomendados */}
+            {quickMenu.length > 0 && (
+              <div className="space-y-5 pt-8 border-t border-slate-100">
+                  <h3 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2 italic">
+                      <ShoppingBag size={14} fill="currentColor" /> Platillos Recomendados
+                  </h3>
+                  <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1">
+                      {quickMenu.map((item) => {
+                        const nombreItem = item.name || item.nombre;
+                        const imagenItem = (item.images && item.images[0]) || item.imagen_url || "/default-image.png";
+                        const precioItem = item.precio_oferta || item.precio_original || item.precio;
+
+                        return (
+                          <div key={item.id} className="min-w-[140px] bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-emerald-100 group relative transition-all shadow-sm">
+                              <div className="h-20 w-full flex items-center justify-center mb-3">
+                                  <img src={imagenItem} className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" alt="" />
+                              </div>
+                              <p className="text-[9px] font-black text-[#1a2e05] uppercase italic truncate mb-1 tracking-tight">{nombreItem}</p>
+                              <div className="flex justify-between items-center mt-2">
+                                <p className="text-[11px] font-[1000] text-emerald-600 italic tracking-tighter">${Number(precioItem).toFixed(0)}</p>
+                                <button onClick={() => {
+                                  navigate(`/product/${item.id}`);
+                                  window.scrollTo(0,0);
+                                }} className="bg-slate-50 text-[#1a2e05] p-1.5 rounded-lg hover:bg-[#1a2e05] hover:text-white transition-all">
+                                    <PlusCircle size={14} strokeWidth={2.5} />
+                                </button>
+                              </div>
+                          </div>
+                        );
+                      })}
+                  </div>
               </div>
             )}
 
