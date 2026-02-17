@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { LayoutGrid, Utensils, Trophy, Soup, Sandwich, SearchX, Zap } from "lucide-react"; // Agregamos Sandwich
+import { LayoutGrid, Utensils, Trophy, Soup, Sandwich, SearchX, Zap } from "lucide-react"; 
 import { useSelector } from "react-redux";
 import Loading from "../Components/Common/Loading";
 import ProductCard from "../Components/Common/ProductCard";
@@ -10,6 +10,8 @@ function ContenidoTienda() {
   const { list: productos = [], loading } = useSelector((state) => state.product || {});
 
   const productosFiltrados = useMemo(() => {
+    // 🔓 Quitamos el filtro restrictivo para que se vean los productos agotados
+    // Pero mantenemos el orden por categoría
     if (categoriaActiva === "TODOS") return productos;
 
     return productos.filter((p) => {
@@ -36,7 +38,6 @@ function ContenidoTienda() {
 
         {/* BARRA DE BOTONES */}
         <div className="flex items-center gap-2 overflow-x-auto pb-8 mb-6 no-scrollbar">
-          
           <button onClick={() => setCategoriaActiva("TODOS")} 
             className={`px-6 py-4 rounded-2xl text-[10px] font-black border-2 transition-all whitespace-nowrap flex items-center gap-2 ${categoriaActiva === "TODOS" ? "bg-[#1a2e05] text-white border-[#1a2e05]" : "bg-white text-slate-400 border-slate-100"}`}>
             <LayoutGrid size={14}/> TODO EL MENÚ
@@ -52,7 +53,6 @@ function ContenidoTienda() {
             <Trophy size={14}/> CAMPEONAS NORTEÑAS
           </button>
 
-          {/* NUEVA SECCIÓN: EMPAREDADOS */}
           <button onClick={() => setCategoriaActiva("EMPAREDADO CORNER")} 
             className={`px-6 py-4 rounded-2xl text-[10px] font-black border-2 transition-all whitespace-nowrap flex items-center gap-2 ${categoriaActiva === "EMPAREDADO CORNER" ? "bg-[#1a2e05] text-white border-[#1a2e05]" : "bg-white text-slate-400 border-slate-100"}`}>
             <Sandwich size={14}/> EMPAREDADOS
@@ -62,15 +62,15 @@ function ContenidoTienda() {
             className={`px-6 py-4 rounded-2xl text-[10px] font-black border-2 transition-all whitespace-nowrap flex items-center gap-2 ${categoriaActiva === "POSTRES" ? "bg-[#1a2e05] text-white border-[#1a2e05]" : "bg-white text-slate-400 border-slate-100"}`}>
             <Soup size={14}/> POSTRES
           </button>
-
         </div>
 
         {/* LISTADO DE PRODUCTOS */}
         {productosFiltrados.length === 0 ? (
-          <div className="py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
-            <SearchX size={40} className="mx-auto mb-4 text-slate-200" />
-            <p className="font-black text-slate-300 uppercase italic text-sm">No se encontraron productos en esta sección</p>
-            <button onClick={() => setCategoriaActiva("TODOS")} className="mt-4 text-emerald-500 font-black text-[10px] underline uppercase">Ver todo el menú</button>
+          /* PANTALLA VACÍA CON DESTELLO ROJO */
+          <div className="py-20 text-center bg-red-50/30 rounded-[3rem] border-2 border-dashed border-red-200 shadow-[0_0_30px_rgba(239,68,68,0.05)] animate-pulse">
+            <SearchX size={40} className="mx-auto mb-4 text-red-300" />
+            <p className="font-black text-red-400 uppercase italic text-sm">Alineación no encontrada en esta sección</p>
+            <button onClick={() => setCategoriaActiva("TODOS")} className="mt-4 text-red-600 font-black text-[10px] underline uppercase tracking-widest">Revisar vestidores</button>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8 lg:gap-10">
