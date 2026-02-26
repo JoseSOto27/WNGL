@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./Components/Common/Navbar";
 import Footer from "./Components/Common/Footer";
 import ScrollToTop from "./Components/Common/ScrollToTop";
+import BannerHorario from "./Components/Common/BannerHorario"; // IMPORTAMOS EL BANNER
 
 // --- PÁGINAS PÚBLICAS ---
 import Home from "./Pages/Home";
@@ -30,11 +31,14 @@ import { UserRoute } from "./store/UserRoute";
 function AppContent() {
   const location = useLocation();
   
-  // Ocultamos Navbar y Footer si estamos en el panel de Admin o en el Login de administración
+  // Ocultamos Navbar, Footer y Banner si estamos en el panel de Admin
   const ocultarLayout = location.pathname.startsWith("/store") || location.pathname === "/admin";
 
   return (
     <>
+      {/* 🛡️ BANNER DE HORARIO: Solo se muestra en la parte pública si la cocina está cerrada */}
+      {!ocultarLayout && <BannerHorario />}
+
       {/* Si no es ruta de admin, mostramos el Navbar estilo Wingool */}
       {!ocultarLayout && <Navbar />}
       

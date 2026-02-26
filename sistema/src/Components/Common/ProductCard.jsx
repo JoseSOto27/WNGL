@@ -1,5 +1,5 @@
 import React from "react";
-import { StarIcon, Zap, Flame, Check, Trophy, ArrowRight, Settings2, Ban } from "lucide-react"; 
+import { StarIcon, Zap, Flame, Check, Trophy, ArrowRight, Settings2, Ban, Box } from "lucide-react"; 
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cart/cartSlice";
@@ -21,7 +21,13 @@ const ProductCard = ({ product }) => {
   // 🛡️ VALIDACIÓN DE DISPONIBILIDAD
   const esDisponible = product.disponible !== false && product.disponible !== "false";
 
-  const requiereConfiguracion = categoria === "ALITAS" || categoria === "BONELESS";
+  // MODIFICACIÓN: Se añade 'PAQUETES' a la validación de configuración
+  const requiereConfiguracion = 
+    categoria === "ALITAS" || 
+    categoria === "BONELESS" || 
+    categoria === "PAQUETES" || 
+    categoria === "PAQUETE";
+
   const isInCart = cartItems.some(item => String(item.id).split('-')[0] === String(productId));
 
   const precioOriginal = Number(product.precio_original) || 0;
@@ -33,7 +39,6 @@ const ProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Bloqueo de seguridad adicional
     if (!esDisponible) return;
 
     if (requiereConfiguracion) {
@@ -58,24 +63,26 @@ const ProductCard = ({ product }) => {
   return (
     <div className={`bg-white rounded-[2rem] p-3 shadow-sm transition-all duration-500 border relative flex flex-col h-full font-sans ${!esDisponible ? 'opacity-90 border-red-200 shadow-[0_0_20px_rgba(239,68,68,0.15)]' : 'border-slate-100 hover:shadow-xl'}`}>
       
-      {/* Link condicional */}
       <Link to={`/product/${product.id}`} className="no-underline flex-grow">
         
         {/* BADGES SUPERIORES */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
             {!esDisponible ? (
-                /* DESTELLO ROJO EN BADGE */
                 <div className="bg-red-600 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-[0_0_15px_rgba(220,38,38,0.5)] italic uppercase tracking-wider animate-pulse">
                     <Ban size={10} /> EN LA BANCA
                 </div>
             ) : (
                 <>
-                    {hasOffer && !requiereConfiguracion && (
-                    <div className="bg-red-500 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg italic uppercase tracking-wider">
-                        <Flame size={10} fill="currentColor" /> OFERTA
-                    </div>
+                    {categoria === "PAQUETES" && (
+                      <div className="bg-blue-600 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg italic uppercase tracking-wider">
+                          <Box size={10} fill="currentColor" /> COMBO
+                      </div>
                     )}
-                    
+                    {hasOffer && !requiereConfiguracion && (
+                      <div className="bg-red-500 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg italic uppercase tracking-wider">
+                          <Flame size={10} fill="currentColor" /> OFERTA
+                      </div>
+                    )}
                     <div className="bg-[#1a2e05] text-emerald-400 text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg border border-white/10 italic uppercase tracking-wider animate-bounce-slow">
                         <Trophy size={10} fill="currentColor" /> Best Seller
                     </div>
@@ -83,21 +90,18 @@ const ProductCard = ({ product }) => {
             )}
         </div>
 
-        {/* CONTENEDOR IMAGEN */}
         <div className={`bg-slate-50/50 rounded-[1.8rem] h-40 flex items-center justify-center overflow-hidden relative ${esDisponible ? 'group-hover:bg-emerald-50/50' : ''} transition-colors`}>
           <img
             src={displayImagen}
             alt={displayNombre}
             className={`h-28 w-auto object-contain drop-shadow-xl transition-transform duration-700 ${esDisponible ? 'group-hover:scale-105' : 'grayscale opacity-40'}`}
           />
-          {/* DESTELLO ROJO SOBRE IMAGEN SI NO ESTÁ DISPONIBLE */}
           {!esDisponible && (
             <div className="absolute inset-0 bg-red-500/5 mix-blend-overlay animate-pulse"></div>
           )}
         </div>
 
         <div className="mt-4 px-2">
-          {/* RATING */}
           <div className="flex gap-0.5 mb-2">
             {[...Array(5)].map((_, i) => (
                 <StarIcon key={i} size={10} fill={esDisponible ? "#10b981" : "#ef4444"} className={esDisponible ? "text-emerald-500" : "text-red-500 opacity-50"} />
@@ -110,13 +114,12 @@ const ProductCard = ({ product }) => {
           
           <div className={`w-full h-px mb-3 ${!esDisponible ? 'bg-red-100' : 'bg-gradient-to-r from-transparent via-slate-100 to-transparent'}`}></div>
 
-          {/* SECCIÓN PRECIO */}
           <div className="flex items-baseline gap-2 mb-2 min-h-[24px]">
              {requiereConfiguracion ? (
                <div className={`flex items-center gap-1.5 ${esDisponible ? 'text-emerald-600 animate-pulse' : 'text-red-400'}`}>
                  <Settings2 size={12} strokeWidth={3} />
                  <span className="text-[9px] font-[1000] uppercase italic tracking-tighter">
-                   {esDisponible ? 'PRECIO SEGÚN TAMAÑO' : 'SIN STOCK'}
+                   {esDisponible ? 'PERZONALIZA TU PLATILLO' : 'SIN STOCK'}
                  </span>
                </div>
              ) : (
@@ -137,7 +140,6 @@ const ProductCard = ({ product }) => {
 
       <div className="mt-auto px-1">
         {!esDisponible ? (
-          /* BOTÓN AGOTADO CON DESTELLO ROJO */
           <button
             disabled
             className="w-full py-3 rounded-xl font-[1000] uppercase text-[10px] tracking-[0.2em] italic flex items-center justify-center gap-2 bg-red-50 text-red-500 border border-red-100 cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.1)]"

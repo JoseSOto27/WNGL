@@ -1,84 +1,104 @@
-import React, { useState, useMemo } from 'react';
-import { Flame, Zap, Target, ShieldAlert, Thermometer } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Flame, Activity, Monitor, Radiation, AlertTriangle, Zap, ShieldAlert } from 'lucide-react';
 
 const FlavorScouting = () => {
   const [activeSabor, setActiveSabor] = useState(0);
+  const [isScanning, setIsScanning] = useState(false);
 
   const sabores = [
-    { nombre: 'LEMON GOAT', flamas: 1, picor: 'Bajo', desc: 'Cítrico refrescante, ideal para los que apenas inician el partido.' },
-    { nombre: 'SLAM DUNK MUSTARD', flamas: 1, picor: 'Bajo', desc: 'Miel y mostaza con un toque dulce ganador.' },
-    { nombre: 'HOME RUN BBQ', flamas: 2, picor: 'Medio-Bajo', desc: 'El clásico ahumado que nunca falla en el marcador.' },
-    { nombre: 'FINTA PICANTE', flamas: 3, picor: 'Medio-Alto', desc: 'Un sabor que te engaña y luego te da el golpe de calor.' },
-    { nombre: 'GOOL DE ORO', flamas: 3, picor: 'Medio-Alto', desc: 'Brillante, audaz y con el picante justo para celebrar.' },
-    { nombre: 'BUFFALO BLITZ', flamas: 4, picor: 'Alto', desc: 'Ataque directo a las papilas. Solo para profesionales.' },
-    { nombre: 'KNOCKOUT HABANERO', flamas: 5, picor: 'FUEGO', desc: 'El jefe final. Si pides esta, ya ganaste el respeto de la liga.' },
+    { nombre: 'LEMON GOAT', flamas: 1, picor: 'Bajo', desc: 'Cítrico refrescante.' },
+    { nombre: 'SLAM DUNK MUSTARD', flamas: 1, picor: 'Bajo', desc: 'Miel y mostaza dulce.' },
+    { nombre: 'HOME RUN BBQ', flamas: 2, picor: 'Medio-Bajo', desc: 'Ahumado clásico.' },
+    { nombre: 'FINTA PICANTE', flamas: 3, picor: 'Medio-Alto', desc: 'Ataque cítrico y calor.' },
+    { nombre: 'GOOL DE ORO', flamas: 3, picor: 'Medio-Alto', desc: 'Fuego audaz.' },
+    { nombre: 'BUFFALO BLITZ', flamas: 4, picor: 'Alto', desc: 'Picante directo.' },
+    { nombre: 'KNOCKOUT HABANERO', flamas: 5, picor: 'FUEGO', desc: 'Nuestra salsa más letal.' },
   ];
 
-  // Lógica de colores dinámica con parpadeo estratégico
-  const heatColor = useMemo(() => {
-    const f = sabores[activeSabor].flamas;
-    if (f >= 4) return { 
-        text: 'text-red-500 animate-pulse', 
-        bg: 'bg-red-500', 
-        glow: 'bg-red-600/30 animate-blink-glow', 
-        border: 'border-red-600 shadow-[0_0_25px_rgba(220,38,38,0.2)]' 
-    };
-    if (f === 3) return { 
-        text: 'text-orange-500', 
-        bg: 'bg-orange-500', 
-        glow: 'bg-orange-500/20 animate-blink-glow', 
-        border: 'border-orange-500' 
-    };
-    return { 
-        text: 'text-emerald-500', 
-        bg: 'bg-emerald-500', 
-        glow: 'bg-emerald-500/20', 
-        border: 'border-emerald-500' 
-    };
+  const current = sabores[activeSabor];
+  const isMaxHeat = current.flamas === 5;
+  const isHighHeat = current.flamas >= 4;
+
+  useEffect(() => {
+    setIsScanning(true);
+    const timer = setTimeout(() => setIsScanning(false), 400);
+    return () => clearTimeout(timer);
+  }, [activeSabor]);
+
+  const theme = useMemo(() => {
+    const f = current.flamas;
+    if (f >= 5) return { color: '#ff4d4d', bg: 'bg-red-600', text: 'text-red-500', glow: 'shadow-[0_0_40px_rgba(239,68,68,0.4)]', circle: 'border-red-500/50' };
+    if (f === 4) return { color: '#f97316', bg: 'bg-orange-600', text: 'text-orange-500', glow: 'shadow-[0_0_30px_rgba(249,115,22,0.3)]', circle: 'border-orange-500/40' };
+    return { color: '#10b981', bg: 'bg-emerald-500', text: 'text-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]', circle: 'border-emerald-500/20' };
   }, [activeSabor]);
 
   return (
-    <section className="py-12 px-4 md:px-10 bg-white">
-      {/* TARJETA CONTENEDORA PRINCIPAL */}
-      <div className="max-w-6xl mx-auto bg-slate-50 rounded-[4rem] p-8 md:p-14 border border-slate-100 shadow-xl relative overflow-hidden">
+    <section className="min-h-screen w-full flex items-center justify-center bg-white font-sans p-6 select-none overflow-hidden">
+      <style>{`
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(1000%); } }
+        .animate-scan { animation: scanline 3s linear infinite; }
+        @keyframes vibrate { 0% { transform: translate(0); } 25% { transform: translate(-1px, 1px); } 50% { transform: translate(1px, -1px); } 75% { transform: translate(-1px, -1px); } 100% { transform: translate(0); } }
+        .animate-vibrate { animation: vibrate 0.1s infinite; }
+        @keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.3); opacity: 0; } }
+        .animate-ring { animation: pulse-ring 2s cubic-bezier(0.21, 0.61, 0.35, 1) infinite; }
+      `}</style>
+
+      {/* Contenedor Mediano (max-w-4xl) */}
+      <div className={`w-full max-w-5xl bg-slate-50 rounded-[3rem] p-6 md:p-10 border border-slate-200 shadow-xl relative overflow-hidden transition-all duration-700 ${isMaxHeat ? 'ring-2 ring-red-500/10' : ''}`}>
         
-        {/* ENCABEZADO */}
-        <div className="mb-10 flex flex-col items-center text-center">
-            <span className="flex items-center gap-2 text-emerald-600 font-[1000] text-[9px] uppercase tracking-[0.4em] mb-2 italic">
-               <Thermometer size={12} /> SCOUTING REPORT
-            </span>
+        <div className="absolute inset-0 bg-white/[0.01] animate-scan pointer-events-none h-4 w-full z-20"></div>
+
+        {/* HEADER REDUCIDO */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 text-emerald-600 font-black text-[9px] uppercase tracking-[0.3em] italic">
+              <Activity size={14} className="animate-pulse" /> TERMOMETRO DE SABORES
+            </div>
             <h2 className="text-3xl md:text-5xl font-[1000] text-[#1a2e05] uppercase italic tracking-tighter leading-none">
-                INTENSIDAD DE <span className="text-emerald-500">SALSAS</span>
+              NUESTRAS <span className="text-emerald-500"> SALSAS</span>
             </h2>
+          </div>
+          
+          <div className={`mt-3 md:mt-0 px-4 py-1.5 rounded-xl border transition-all duration-500 flex items-center gap-2 bg-white ${isMaxHeat ? 'border-red-500 shadow-red-100 shadow-lg' : 'border-slate-200'}`}>
+             <div className={`size-2 rounded-full ${isScanning ? 'bg-blue-500 animate-ping' : theme.bg}`}></div>
+             <span className={`text-[10px] font-black uppercase tracking-widest italic ${isMaxHeat ? 'text-red-600' : 'text-slate-500'}`}>
+               {isScanning ? 'SCANNING...' : isMaxHeat ? 'CRITICAL' : 'STABLE'}
+             </span>
+          </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           
-          {/* SELECTOR TÁCTICO */}
-          <div className="w-full lg:w-[45%] flex flex-col gap-2 relative z-10">
+          {/* SELECTOR MEDIANO */}
+          <div className="lg:col-span-4 flex flex-col gap-2">
+            <div className="flex justify-between items-center px-2 mb-1">
+            </div>
             {sabores.map((sabor, index) => (
               <button
                 key={index}
                 onClick={() => setActiveSabor(index)}
-                className={`flex items-center justify-between p-4 md:p-5 rounded-[1.8rem] transition-all duration-500 relative overflow-hidden ${
+                className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 border-2 font-sans relative overflow-hidden ${
                   activeSabor === index 
-                  ? 'bg-[#1a2e05] text-white shadow-lg scale-[1.03] z-10' 
-                  : 'bg-white text-slate-400 hover:bg-white hover:text-emerald-600 hover:shadow-md'
+                  ? 'bg-[#1a2e05] border-[#1a2e05] text-white shadow-lg translate-x-2' 
+                  : 'bg-white border-transparent text-slate-400 hover:border-emerald-100'
                 }`}
               >
-                <div className="flex items-center gap-4 relative z-10">
-                    <span className={`text-[10px] font-black italic ${activeSabor === index ? 'text-emerald-400' : 'text-slate-200'}`}>
-                        {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span className="font-[1000] uppercase italic text-xs md:text-sm tracking-tight">{sabor.nombre}</span>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-black italic ${activeSabor === index ? 'text-emerald-400' : 'text-slate-200'}`}>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <div className="text-left leading-tight">
+                    <p className="font-[1000] uppercase italic text-xs md:text-sm tracking-tight">{sabor.nombre}</p>
+                    {activeSabor === index && <p className="text-[8px] text-emerald-400 font-bold uppercase tracking-tighter mt-0.5">{sabor.desc}</p>}
+                  </div>
                 </div>
-                <div className="flex gap-0.5 relative z-10">
+                <div className="flex gap-0.5">
                    {[...Array(5)].map((_, i) => (
                       <Flame 
                         key={i} 
-                        size={12} 
-                        fill={i < sabor.flamas ? "currentColor" : "none"} 
-                        className={`${i < sabor.flamas ? (activeSabor === index ? 'text-orange-500' : 'text-emerald-500') : 'text-slate-100'}`} 
+                        size={13} 
+                        fill={i < sabor.flamas ? (activeSabor === index ? "#10b981" : "#cbd5e1") : "none"} 
+                        className={i < sabor.flamas ? (activeSabor === index ? 'text-emerald-500' : 'text-slate-300') : 'text-slate-100'} 
                       />
                    ))}
                 </div>
@@ -86,76 +106,82 @@ const FlavorScouting = () => {
             ))}
           </div>
 
-          {/* VISUALIZADOR DE TARJETA NEGRA */}
-          <div className="w-full lg:w-[55%] flex justify-center relative">
-              {/* GLOW DINÁMICO CON PARPADEO ANIMADO */}
-              <div className={`absolute inset-0 rounded-full blur-[100px] transition-all duration-1000 ${heatColor.glow}`}></div>
+          {/* TERMÓMETRO MEDIANO */}
+          <div className="lg:col-span-8 flex flex-row items-center justify-center gap-8 md:gap-16 py-4 relative">
+            
+            <div className={`absolute inset-0 rounded-full blur-[80px] transition-all duration-1000 opacity-10 ${theme.bg}`}></div>
+
+            <div className="flex items-center gap-6 md:gap-10 relative">
               
-              <div className={`relative w-full max-w-[340px] aspect-[3/4] bg-[#0f1a04] rounded-[3rem] p-10 border-b-[15px] shadow-2xl flex flex-col items-center text-center justify-between transition-all duration-700 ${heatColor.border} ${sabores[activeSabor].flamas >= 4 ? 'animate-vibrate' : ''}`}>
-                
-                <Zap size={180} className="absolute -top-10 -right-10 text-white/5 rotate-12 animate-pulse" />
+              {/* Escala */}
+              <div className="flex flex-col justify-between h-[300px] md:h-[50vh] py-6 text-[9px] font-black text-slate-900 italic text-right tracking-widest leading-none opacity-40">
+                <span className="flex items-center gap-2"><Zap size={10}/> MAX</span>
+                <span>80%</span>
+                <span>60%</span>
+                <span>40%</span>
+                <span>20%</span>
+                <span>MIN</span>
+              </div>
 
-                <div className="relative z-10">
-                    {/* BOTÓN CENTRAL DINÁMICO */}
-                    <div className={`size-20 rounded-[2rem] mx-auto flex items-center justify-center mb-6 shadow-2xl transition-all duration-700 ${heatColor.bg} ${sabores[activeSabor].flamas >= 4 ? 'scale-110 shadow-red-500/50' : ''}`}>
-                        <Flame size={40} fill="currentColor" className="text-white animate-flame-wiggle" />
+              {/* Instrumento Redimensionado */}
+              <div className="relative flex flex-col items-center">
+                <div className={`h-[280px] md:h-[45vh] w-14 md:w-20 bg-white rounded-t-full p-2 md:p-3 relative border-[6px] md:border-[8px] border-white shadow-xl overflow-hidden z-10 ${isMaxHeat ? 'animate-vibrate' : ''}`}>
+                    <div className="absolute inset-y-8 inset-x-0 flex flex-col justify-between items-center opacity-20 z-10 pointer-events-none">
+                        {[...Array(9)].map((_, i) => (
+                            <div key={i} className={`h-[1.5px] ${i % 4 === 0 ? 'w-full bg-slate-900' : 'w-4 bg-slate-400'}`}></div>
+                        ))}
                     </div>
-                    
-                    <span className={`text-[9px] font-black uppercase tracking-[0.4em] italic mb-2 block transition-colors ${heatColor.text}`}>
-                        ANÁLISIS MVP
-                    </span>
-                    <h3 className="text-3xl font-[1000] text-white uppercase italic leading-none tracking-tighter mb-4">
-                        {sabores[activeSabor].nombre}
-                    </h3>
-                    <p className="text-white/50 text-[10px] font-bold italic leading-relaxed uppercase tracking-widest px-2">
-                        "{sabores[activeSabor].desc}"
-                    </p>
-                </div>
 
-                <div className="relative z-10 w-full pt-6 border-t border-white/10 mt-6">
-                    <div className="flex justify-between items-center mb-3 px-2">
-                        <span className="text-[8px] font-black text-white/30 uppercase italic">Power Level</span>
-                        <span className={`text-xs font-[1000] italic uppercase transition-colors ${heatColor.text}`}>
-                            {sabores[activeSabor].picor}
-                        </span>
-                    </div>
-                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden relative p-0.5 border border-white/10">
+                    <div className="absolute bottom-0 inset-x-1.5 flex flex-col justify-end h-full">
                         <div 
-                          className={`h-full rounded-full transition-all duration-1000 ${heatColor.bg} ${sabores[activeSabor].flamas >= 4 ? 'shadow-[0_0_15px_rgba(239,68,68,0.6)]' : ''}`}
-                          style={{ width: `${(sabores[activeSabor].flamas / 5) * 100}%` }}
+                          className={`w-full transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative ${theme.bg} ${theme.glow}`}
+                          style={{ height: `${(current.flamas / 5) * 100}%` }}
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-laser"></div>
+                            <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white/30 to-transparent blur-sm"></div>
                         </div>
                     </div>
                 </div>
 
-                {sabores[activeSabor].flamas >= 4 && (
-                    <div className="absolute top-6 right-6 flex items-center gap-1 text-red-500 animate-pulse">
-                        <ShieldAlert size={14} />
-                        <span className="text-[8px] font-black uppercase tracking-tighter">Extreme</span>
+                {/* Bulbo Base Mediano */}
+                <div className="relative -mt-8 md:-mt-10 z-20">
+                    {isHighHeat && <div className={`absolute inset-0 rounded-full border-2 animate-ring ${theme.circle}`}></div>}
+                    
+                    <div className={`size-24 md:size-32 rounded-full border-[8px] md:border-[10px] border-white shadow-xl transition-all duration-700 flex items-center justify-center ${theme.bg} ${theme.glow} ${isMaxHeat ? 'animate-vibrate scale-105' : ''}`}>
+                        {isMaxHeat ? (
+                          <Radiation size={40} className="text-white animate-spin" style={{ animationDuration: '4s' }} />
+                        ) : isHighHeat ? (
+                          <ShieldAlert size={40} className="text-white animate-pulse" />
+                        ) : (
+                          <Flame size={40} fill="white" className="text-white" />
+                        )}
                     </div>
-                )}
-             </div>
+                </div>
+              </div>
+
+              {/* Lectura Digital Equilibrada */}
+              <div className="flex flex-col items-start min-w-[90px] md:min-w-[200px] z-10">
+                  <div className="flex flex-col mb-3">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic leading-none mb-1">NIVEL DE PICANTE</span>
+                    <div className="flex items-baseline leading-none">
+                        <p className={`text-5xl md:text-8xl font-[1000] italic transition-colors duration-700 ${theme.text}`}>
+                            {current.flamas * 20}
+                        </p>
+                        <span className={`text-xl md:text-3xl font-black italic ${theme.text} opacity-30 ml-1`}>%</span>
+                    </div>
+                </div>
+                
+                <div className={`px-4 py-2 rounded-xl border bg-white shadow-md transition-all duration-500 border-slate-100 ${isMaxHeat ? 'translate-x-2' : ''}`}>
+                  <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1 italic">PICOR</p>
+                  <p className={`text-sm md:text-xl font-[1000] uppercase italic leading-none ${theme.text}`}>
+                    {current.picor}
+                  </p>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes laser { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        .animate-laser { animation: laser 2s infinite linear; }
-        
-        @keyframes flame-wiggle { 0%, 100% { transform: scale(1) rotate(-5deg); } 50% { transform: scale(1.1) rotate(5deg); } }
-        .animate-flame-wiggle { animation: flame-wiggle 0.6s infinite ease-in-out; }
-        
-        @keyframes vibrate { 0%, 100% { transform: translate(0); } 25% { transform: translate(-1px, 1px); } 50% { transform: translate(1px, -1px); } 75% { transform: translate(-1px, -1px); } }
-        .animate-vibrate { animation: vibrate 0.3s infinite linear; }
-        
-        @keyframes blink-glow {
-          0%, 100% { opacity: 0.8; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.1); }
-        }
-        .animate-blink-glow { animation: blink-glow 2s infinite ease-in-out; }
-      `}</style>
     </section>
   );
 };
