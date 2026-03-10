@@ -1,33 +1,29 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom"; // Importación necesaria
+import { useNavigate } from "react-router-dom"; 
 import { fetchProducts } from "../../redux/productActions";
 import ProductCard from "../Common/ProductCard";
 import { Trophy, Flame, Loader2, AlertCircle } from "lucide-react";
 
 const BestSelling = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Inicialización del hook
+  const navigate = useNavigate(); 
   const displayQuantity = 8;
 
-  // Traemos los productos y el estado de carga
   const { list: products, loading, error } = useSelector((state) => state.product);
 
-  // EFECTO: Si la lista está vacía y no está cargando, forzamos la carga
   useEffect(() => {
     if (products.length === 0 && !loading) {
       dispatch(fetchProducts());
     }
   }, [dispatch, products.length, loading]);
 
-  // Ordenamos los más vendidos (por cantidad de reseñas)
   const bestSellers = React.useMemo(() => {
     return [...products]
       .sort((a, b) => (b.rating?.length || 0) - (a.rating?.length || 0))
       .slice(0, displayQuantity);
   }, [products]);
 
-  // --- ESTADO: CARGANDO (Evita que se quede infinito) ---
   if (loading && products.length === 0) {
     return (
       <div className="py-20 flex flex-col items-center justify-center">
@@ -39,7 +35,6 @@ const BestSelling = () => {
     );
   }
 
-  // --- ESTADO: ERROR ---
   if (error && products.length === 0) {
     return (
       <div className="py-20 text-center">
@@ -56,7 +51,8 @@ const BestSelling = () => {
   }
 
   return (
-    <section className="relative px-6 py-24 my-10 overflow-hidden bg-white">
+    /* ✅ CAMBIO: Se redujo py-24 a py-12 y se eliminó my-10 por mt-0 para pegar el diseño al Ticker */
+    <section className="relative px-6 py-4 mt-0 mb-10 overflow-hidden bg-white">
       <div className="max-w-7xl mx-auto">
         
         {/* HEADER WINGOOL */}
@@ -73,7 +69,6 @@ const BestSelling = () => {
             </p>
           </div>
 
-          {/* BOTÓN CORREGIDO PARA JSX/REACT ROUTER */}
           <button 
             type="button"
             onClick={() => navigate('/shop')}

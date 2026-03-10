@@ -5,14 +5,14 @@ import { X, Loader2, ShieldCheck } from 'lucide-react';
 // ✅ TU PUBLIC KEY
 initMercadoPago('APP_USR-b7abe48e-dcf5-47b4-be82-80c541a78e4a');
 
-const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
+// ✅ AHORA RECIBE puntosUsados
+const MercadoPagoModal = ({ total, cartItems, userData, puntosUsados, onClose }) => {
     const [preferenceId, setPreferenceId] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const generatePreference = async () => {
             try {
-                // 🚀 URL DIRECTA PARA EVITAR EL ERROR 'UNDEFINED'
                 const apiUrl = "https://wngl-5fb1.vercel.app/create_preference";
                 
                 console.log("Conectando a la API en:", apiUrl);
@@ -22,8 +22,9 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         items: cartItems, 
-                        total,
-                        userData 
+                        total, // El total ya viene con el descuento desde OrderSummary
+                        userData,
+                        puntosUsados: puntosUsados || 0 // ✅ ENVIAMOS LOS PUNTOS AL SERVIDOR
                     })
                 });
 
@@ -42,7 +43,7 @@ const MercadoPagoModal = ({ total, cartItems, userData, onClose }) => {
             }
         };
         generatePreference();
-    }, [cartItems, total, userData]);
+    }, [cartItems, total, userData, puntosUsados]); // ✅ Añadido puntosUsados a las dependencias
 
     return (
         <div className="fixed inset-0 bg-[#1a2e05]/90 backdrop-blur-md z-[200] flex items-center justify-center p-4">

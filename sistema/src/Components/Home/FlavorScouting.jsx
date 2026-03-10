@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Flame, Activity, Monitor, Radiation, AlertTriangle, Zap, ShieldAlert } from 'lucide-react';
+import { Flame, Activity, Radiation, Zap, ShieldAlert, Crosshair, ThermometerSnowflake } from 'lucide-react';
 
 const FlavorScouting = () => {
   const [activeSabor, setActiveSabor] = useState(0);
@@ -27,13 +27,15 @@ const FlavorScouting = () => {
 
   const theme = useMemo(() => {
     const f = current.flamas;
-    if (f >= 5) return { color: '#ff4d4d', bg: 'bg-red-600', text: 'text-red-500', glow: 'shadow-[0_0_40px_rgba(239,68,68,0.4)]', circle: 'border-red-500/50' };
-    if (f === 4) return { color: '#f97316', bg: 'bg-orange-600', text: 'text-orange-500', glow: 'shadow-[0_0_30px_rgba(249,115,22,0.3)]', circle: 'border-orange-500/40' };
-    return { color: '#10b981', bg: 'bg-emerald-500', text: 'text-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]', circle: 'border-emerald-500/20' };
+    if (f >= 5) return { color: '#ff4d4d', bg: 'bg-red-600', text: 'text-red-500', glow: 'shadow-[0_0_30px_rgba(239,68,68,0.4)]', circle: 'border-red-500/50' };
+    if (f === 4) return { color: '#f97316', bg: 'bg-orange-600', text: 'text-orange-500', glow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]', circle: 'border-orange-500/40' };
+    return { color: '#10b981', bg: 'bg-emerald-500', text: 'text-emerald-500', glow: 'shadow-[0_0_10px_rgba(16,185,129,0.1)]', circle: 'border-emerald-500/20' };
   }, [activeSabor]);
 
   return (
-    <section className="min-h-screen w-full flex items-center justify-center bg-white font-sans p-6 select-none overflow-hidden">
+    /* ✅ FONDO BLANCO PURO PARA UNIFICAR */
+    <section className="w-full flex items-center justify-center bg-white font-sans p-6 md:p-8 select-none overflow-hidden relative">
+      
       <style>{`
         @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(1000%); } }
         .animate-scan { animation: scanline 3s linear infinite; }
@@ -43,12 +45,12 @@ const FlavorScouting = () => {
         .animate-ring { animation: pulse-ring 2s cubic-bezier(0.21, 0.61, 0.35, 1) infinite; }
       `}</style>
 
-      {/* Contenedor Mediano (max-w-4xl) */}
-      <div className={`w-full max-w-5xl bg-slate-50 rounded-[3rem] p-6 md:p-10 border border-slate-200 shadow-xl relative overflow-hidden transition-all duration-700 ${isMaxHeat ? 'ring-2 ring-red-500/10' : ''}`}>
+      {/* ✅ TAMAÑO ORIGINAL (max-w-5xl) Y ESTILO LIMPIO */}
+      <div className={`w-full max-w-5xl bg-white rounded-[3rem] p-6 md:p-10 border border-slate-100 shadow-xl relative overflow-hidden transition-all duration-700 ${isMaxHeat ? 'ring-2 ring-red-500/10' : ''}`}>
         
         <div className="absolute inset-0 bg-white/[0.01] animate-scan pointer-events-none h-4 w-full z-20"></div>
 
-        {/* HEADER REDUCIDO */}
+        {/* HEADER COMPACTO */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-emerald-600 font-black text-[9px] uppercase tracking-[0.3em] italic">
@@ -59,7 +61,7 @@ const FlavorScouting = () => {
             </h2>
           </div>
           
-          <div className={`mt-3 md:mt-0 px-4 py-1.5 rounded-xl border transition-all duration-500 flex items-center gap-2 bg-white ${isMaxHeat ? 'border-red-500 shadow-red-100 shadow-lg' : 'border-slate-200'}`}>
+          <div className={`mt-3 md:mt-0 px-4 py-1.5 rounded-xl border transition-all duration-500 flex items-center gap-2 bg-white ${isMaxHeat ? 'border-red-500 shadow-red-100 shadow-lg' : 'border-slate-100'}`}>
              <div className={`size-2 rounded-full ${isScanning ? 'bg-blue-500 animate-ping' : theme.bg}`}></div>
              <span className={`text-[10px] font-black uppercase tracking-widest italic ${isMaxHeat ? 'text-red-600' : 'text-slate-500'}`}>
                {isScanning ? 'SCANNING...' : isMaxHeat ? 'CRITICAL' : 'STABLE'}
@@ -69,10 +71,8 @@ const FlavorScouting = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           
-          {/* SELECTOR MEDIANO */}
+          {/* SELECTOR ORIGINAL */}
           <div className="lg:col-span-4 flex flex-col gap-2">
-            <div className="flex justify-between items-center px-2 mb-1">
-            </div>
             {sabores.map((sabor, index) => (
               <button
                 key={index}
@@ -106,15 +106,15 @@ const FlavorScouting = () => {
             ))}
           </div>
 
-          {/* TERMÓMETRO MEDIANO */}
+          {/* TERMÓMETRO ORIGINAL REDIMENSIONADO */}
           <div className="lg:col-span-8 flex flex-row items-center justify-center gap-8 md:gap-16 py-4 relative">
             
-            <div className={`absolute inset-0 rounded-full blur-[80px] transition-all duration-1000 opacity-10 ${theme.bg}`}></div>
+            <div className={`absolute inset-0 rounded-full blur-[80px] transition-all duration-1000 opacity-5 ${theme.bg}`}></div>
 
             <div className="flex items-center gap-6 md:gap-10 relative">
               
               {/* Escala */}
-              <div className="flex flex-col justify-between h-[300px] md:h-[50vh] py-6 text-[9px] font-black text-slate-900 italic text-right tracking-widest leading-none opacity-40">
+              <div className="flex flex-col justify-between h-[300px] md:h-[45vh] py-6 text-[9px] font-black text-slate-900 italic text-right tracking-widest leading-none opacity-40">
                 <span className="flex items-center gap-2"><Zap size={10}/> MAX</span>
                 <span>80%</span>
                 <span>60%</span>
@@ -123,18 +123,12 @@ const FlavorScouting = () => {
                 <span>MIN</span>
               </div>
 
-              {/* Instrumento Redimensionado */}
+              {/* Instrumento */}
               <div className="relative flex flex-col items-center">
-                <div className={`h-[280px] md:h-[45vh] w-14 md:w-20 bg-white rounded-t-full p-2 md:p-3 relative border-[6px] md:border-[8px] border-white shadow-xl overflow-hidden z-10 ${isMaxHeat ? 'animate-vibrate' : ''}`}>
-                    <div className="absolute inset-y-8 inset-x-0 flex flex-col justify-between items-center opacity-20 z-10 pointer-events-none">
-                        {[...Array(9)].map((_, i) => (
-                            <div key={i} className={`h-[1.5px] ${i % 4 === 0 ? 'w-full bg-slate-900' : 'w-4 bg-slate-400'}`}></div>
-                        ))}
-                    </div>
-
-                    <div className="absolute bottom-0 inset-x-1.5 flex flex-col justify-end h-full">
+                <div className={`h-[280px] md:h-[40vh] w-14 md:w-20 bg-white rounded-t-full p-2 md:p-3 relative border-[6px] md:border-[8px] border-white shadow-xl overflow-hidden z-10 ${isMaxHeat ? 'animate-vibrate' : ''}`}>
+                    <div className="absolute bottom-0 inset-x-1 flex flex-col justify-end h-full">
                         <div 
-                          className={`w-full transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative ${theme.bg} ${theme.glow}`}
+                          className={`w-full transition-all duration-700 relative ${theme.bg} ${theme.glow}`}
                           style={{ height: `${(current.flamas / 5) * 100}%` }}
                         >
                             <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white/30 to-transparent blur-sm"></div>
@@ -142,7 +136,7 @@ const FlavorScouting = () => {
                     </div>
                 </div>
 
-                {/* Bulbo Base Mediano */}
+                {/* Bulbo Base */}
                 <div className="relative -mt-8 md:-mt-10 z-20">
                     {isHighHeat && <div className={`absolute inset-0 rounded-full border-2 animate-ring ${theme.circle}`}></div>}
                     
@@ -158,10 +152,10 @@ const FlavorScouting = () => {
                 </div>
               </div>
 
-              {/* Lectura Digital Equilibrada */}
+              {/* Lectura Digital */}
               <div className="flex flex-col items-start min-w-[90px] md:min-w-[200px] z-10">
                   <div className="flex flex-col mb-3">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic leading-none mb-1">NIVEL DE PICANTE</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic leading-none mb-1">PICANTE</span>
                     <div className="flex items-baseline leading-none">
                         <p className={`text-5xl md:text-8xl font-[1000] italic transition-colors duration-700 ${theme.text}`}>
                             {current.flamas * 20}
@@ -170,8 +164,8 @@ const FlavorScouting = () => {
                     </div>
                 </div>
                 
-                <div className={`px-4 py-2 rounded-xl border bg-white shadow-md transition-all duration-500 border-slate-100 ${isMaxHeat ? 'translate-x-2' : ''}`}>
-                  <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1 italic">PICOR</p>
+                <div className={`px-4 py-2 rounded-xl border bg-white shadow-md transition-all duration-500 border-slate-50 ${isMaxHeat ? 'translate-x-2' : ''}`}>
+                  <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1 italic">NIVEL</p>
                   <p className={`text-sm md:text-xl font-[1000] uppercase italic leading-none ${theme.text}`}>
                     {current.picor}
                   </p>
@@ -180,6 +174,11 @@ const FlavorScouting = () => {
 
             </div>
           </div>
+        </div>
+        
+        {/* Footer Wingool */}
+        <div className="mt-8 pt-6 border-t border-slate-50 text-center opacity-20">
+           <p className="text-[8px] font-black text-[#1a2e05] uppercase tracking-[0.5em] italic">Wingool Laboratory Division</p>
         </div>
       </div>
     </section>

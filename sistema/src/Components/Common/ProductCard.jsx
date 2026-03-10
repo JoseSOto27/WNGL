@@ -5,6 +5,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cart/cartSlice";
 import { useNotify } from "../../hook/useNotify";
 
+// ✅ IMPORTACIÓN DIRECTA DE LA LÓGICA DE HORARIO
+import { checkWingoolStatus } from "../Common/verificarHorario"; 
+
 const ProductCard = ({ product }) => {
   const currency = "$";
   const dispatch = useDispatch();
@@ -12,21 +15,20 @@ const ProductCard = ({ product }) => {
   const cartItems = useSelector((state) => state.cart.cartItems) || [];
   const notify = useNotify();
 
-  // --- NORMALIZACIÓN DE DATOS WINGOOL ---
   const displayNombre = product.nombre || product.name || "PRODUCTO";
   const displayImagen = product.imagen_url || product.image || (product.images && product.images[0]) || "/default-image.png";
   const productId = product.id;
   const categoria = (product.categoria || "").toUpperCase().trim();
   
-  // 🛡️ VALIDACIÓN DE DISPONIBILIDAD
   const esDisponible = product.disponible !== false && product.disponible !== "false";
 
-  // MODIFICACIÓN: Se añade 'PAQUETES' a la validación de configuración
   const requiereConfiguracion = 
     categoria === "ALITAS" || 
     categoria === "BONELESS" || 
-    categoria === "PAQUETES" || 
-    categoria === "PAQUETE";
+    categoria === "PAQUETES" ||
+    categoria === "CERVEZAS" || 
+    categoria === "POMOS" || 
+    categoria === "COPEO";
 
   const isInCart = cartItems.some(item => String(item.id).split('-')[0] === String(productId));
 
@@ -38,6 +40,14 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // 🚩 CONTROL DE ARBITRAJE: Verificamos si el estadio está abierto justo al dar clic
+    const horario = checkWingoolStatus(); 
+    
+    if (horario.isClosed) {
+      notify.error("🚨 ESTADIO CERRADO: No se pueden procesar jugadas fuera de horario.");
+      return; // Bloqueo absoluto de la ejecución
+    }
 
     if (!esDisponible) return;
 
@@ -65,7 +75,6 @@ const ProductCard = ({ product }) => {
       
       <Link to={`/product/${product.id}`} className="no-underline flex-grow">
         
-        {/* BADGES SUPERIORES */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
             {!esDisponible ? (
                 <div className="bg-red-600 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-[0_0_15px_rgba(220,38,38,0.5)] italic uppercase tracking-wider animate-pulse">
@@ -73,9 +82,9 @@ const ProductCard = ({ product }) => {
                 </div>
             ) : (
                 <>
-                    {categoria === "PAQUETES" && (
+                    {(categoria === "PAQUETES" || categoria === "POMOS") && (
                       <div className="bg-blue-600 text-white text-[8px] font-[1000] px-3 py-1 rounded-full flex items-center gap-1 shadow-lg italic uppercase tracking-wider">
-                          <Box size={10} fill="currentColor" /> COMBO
+                          <Box size={10} fill="currentColor" /> {categoria === "POMOS" ? 'BOTELLA' : 'COMBO'}
                       </div>
                     )}
                     {hasOffer && !requiereConfiguracion && (
@@ -96,9 +105,6 @@ const ProductCard = ({ product }) => {
             alt={displayNombre}
             className={`h-28 w-auto object-contain drop-shadow-xl transition-transform duration-700 ${esDisponible ? 'group-hover:scale-105' : 'grayscale opacity-40'}`}
           />
-          {!esDisponible && (
-            <div className="absolute inset-0 bg-red-500/5 mix-blend-overlay animate-pulse"></div>
-          )}
         </div>
 
         <div className="mt-4 px-2">
@@ -119,7 +125,7 @@ const ProductCard = ({ product }) => {
                <div className={`flex items-center gap-1.5 ${esDisponible ? 'text-emerald-600 animate-pulse' : 'text-red-400'}`}>
                  <Settings2 size={12} strokeWidth={3} />
                  <span className="text-[9px] font-[1000] uppercase italic tracking-tighter">
-                   {esDisponible ? 'PERZONALIZA TU PLATILLO' : 'SIN STOCK'}
+                   {esDisponible ? 'PERSONALIZA TU JUGADA' : 'SIN STOCK'}
                  </span>
                </div>
              ) : (
@@ -139,12 +145,13 @@ const ProductCard = ({ product }) => {
       </Link>
 
       <div className="mt-auto px-1">
-        {!esDisponible ? (
+        {/* BOTÓN DINÁMICO: Se bloquea si el Arbitro dice que está cerrado */}
+        {!esDisponible || checkWingoolStatus().isClosed ? (
           <button
             disabled
             className="w-full py-3 rounded-xl font-[1000] uppercase text-[10px] tracking-[0.2em] italic flex items-center justify-center gap-2 bg-red-50 text-red-500 border border-red-100 cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.1)]"
           >
-            AGOTADO
+            {checkWingoolStatus().isClosed ? 'ESTADIO CERRADO' : 'AGOTADO'}
           </button>
         ) : !isInCart ? (
           <button

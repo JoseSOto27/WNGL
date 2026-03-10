@@ -29,7 +29,7 @@ const ourSpecsData = [
 
 const OurSpecs = () => {
   return (
-    <div className="px-6 my-32 max-w-7xl mx-auto">
+    <div className="px-6 my-5 max-w-7xl mx-auto">
       {/* HEADER DEL COMPONENTE */}
       <div className="text-center mb-16">
         <div className="flex justify-center mb-4">

@@ -78,8 +78,6 @@ const OrderSummary = () => {
         }
     };
 
-    // ✅ MODIFICADO: Ahora solo maneja la limpieza local, 
-    // ya que el Webhook del servidor se encarga de insertar en la BD.
     const handlePagoExitoso = async () => {
         setIsLoading(true);
         try {
@@ -113,7 +111,7 @@ const OrderSummary = () => {
                 })),
                 subtotal: subtotal, 
                 total: totalFinal,
-                metodo_pago: "Efectivo",
+                metodo_pago: descuentoPuntos > 0 && totalFinal === 0 ? "Puntos Wingool" : "Efectivo",
                 estado: "pendiente",
                 puntos_usados: descuentoPuntos,
                 puntos_generados: puntosAGanar
@@ -127,7 +125,6 @@ const OrderSummary = () => {
         }
     };
 
-    // VISTAS DE ESTADO (ÉXITO / ERROR)
     if (orderConfirmed) {
         return (
             <div className="w-full max-w-md mx-auto bg-white p-12 rounded-[4rem] shadow-2xl text-center border-4 border-emerald-500 animate-in zoom-in duration-500 relative overflow-hidden">
@@ -183,7 +180,8 @@ const OrderSummary = () => {
                 <MercadoPagoModal 
                     total={totalFinal} 
                     cartItems={cartItems}
-                    // ✅ NUEVO: Enviamos userData al modal para que lo mande al servidor
+                    // ✅ LA CORRECCIÓN CLAVE: Enviamos el valor de descuento al modal
+                    puntosUsados={descuentoPuntos}
                     userData={{
                         id: currentUser?.id,
                         name: contactInfo.name,
@@ -210,7 +208,6 @@ const OrderSummary = () => {
                 </div>
             </div>
 
-            {/* COMANDA */}
             <div className="bg-slate-50 rounded-[2.5rem] p-6 space-y-3 shadow-inner border border-slate-100/50">
                 <div className="flex items-center gap-2 mb-2">
                     <ReceiptText size={18} className="text-emerald-500" />
@@ -226,7 +223,6 @@ const OrderSummary = () => {
                 </div>
             </div>
 
-            {/* DATOS DE ENTREGA */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2 px-2">
                     <MapPin size={16} className="text-emerald-500" />
@@ -253,7 +249,6 @@ const OrderSummary = () => {
                 </div>
             </div>
 
-            {/* PUNTOS */}
             <button onClick={() => userPoints >= MINIMUN_POINTS_TO_REDEEM && setUsePoints(!usePoints)} className={`w-full p-4 rounded-[2.5rem] border-2 border-dashed flex items-center justify-between transition-all duration-300 ${usePoints ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 opacity-80'}`}>
                 <div className="flex items-center gap-3 text-left">
                     <div className={`p-2 rounded-xl transition-all ${usePoints ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'bg-slate-100 text-slate-400'}`}><Ticket size={18} /></div>
@@ -265,7 +260,6 @@ const OrderSummary = () => {
                 <div className={`w-10 h-5 rounded-full p-1 transition-all ${usePoints ? 'bg-emerald-500' : 'bg-slate-200'}`}><div className={`w-3 h-3 bg-white rounded-full transition-all transform ${usePoints ? 'translate-x-5' : 'translate-x-0'}`} /></div>
             </button>
 
-            {/* TOTAL BOX */}
             <div className="mx-1 bg-[#1a2e05] rounded-[3.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
                 <div className="space-y-4 relative z-10">
@@ -281,7 +275,6 @@ const OrderSummary = () => {
                 </div>
             </div>
 
-            {/* MÉTODOS Y ACCIÓN */}
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setMetodoPago("efectivo")} className={`p-4 rounded-[2rem] border-4 flex flex-col items-center gap-1 transition-all active:scale-95 ${metodoPago === "efectivo" ? "border-emerald-500 bg-emerald-50" : "border-slate-50 opacity-40"}`}><Wallet size={24} className={metodoPago === "efectivo" ? "text-emerald-500" : "text-slate-400"} /><span className="text-[9px] font-[1000] uppercase italic text-[#1a2e05]">Efectivo</span></button>
@@ -291,12 +284,18 @@ const OrderSummary = () => {
                     onClick={() => { 
                         if (!selectedAddress) return toast.error("Selecciona una dirección"); 
                         if (!contactInfo.phone) return toast.error("Ingresa un teléfono.");
-                        metodoPago === "tarjeta" ? setMostrarPasarela(true) : handlePedidoEfectivo(); 
+                        
+                        // Si el total es 0 (pagado full con puntos), lo procesamos como efectivo para que el servidor no pida tarjeta
+                        if (usePoints && totalFinal <= 0) {
+                           handlePedidoEfectivo();
+                        } else {
+                           metodoPago === "tarjeta" ? setMostrarPasarela(true) : handlePedidoEfectivo(); 
+                        }
                     }} 
                     disabled={isLoading || cartItems.length === 0} 
                     className="w-full bg-[#1a2e05] text-white py-6 rounded-[2.5rem] font-[1000] uppercase italic flex items-center justify-center gap-4 transition-all hover:bg-emerald-600 shadow-xl active:scale-95 disabled:opacity-50"
                 >
-                    {isLoading ? <Loader2 className="animate-spin" size={24} /> : ( <> <Zap size={20} fill="currentColor" className="text-emerald-400" /> <span>{metodoPago === "tarjeta" ? "PAGAR JUGADA" : "CONFIRMAR PEDIDO"}</span> </> )}
+                    {isLoading ? <Loader2 className="animate-spin" size={24} /> : ( <> <Zap size={20} fill="currentColor" className="text-emerald-400" /> <span>{metodoPago === "tarjeta" && totalFinal > 0 ? "PAGAR JUGADA" : "CONFIRMAR PEDIDO"}</span> </> )}
                 </button>
             </div>
             {showAddressModal && ( <AddressModal onClose={() => setShowAddressModal(false)} onAddressAdded={(newAddr) => { setSavedAddresses(prev => [...prev, newAddr]); setSelectedAddress(newAddr); }} userId={currentUser?.id} /> )}
