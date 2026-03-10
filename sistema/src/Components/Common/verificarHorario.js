@@ -7,7 +7,7 @@ export const checkWingoolStatus = () => {
   const config = {
     abierto: 13.0, // 1:00 PM
     cierre: 22.0,   // 10:00 PM
-    esLunes: dia === 3
+    esLunes: dia === 1
   };
 
   let status = "ABIERTO";
