@@ -24,7 +24,6 @@ import {
 import { supabase } from "../services/supabase";
 import { addToCart } from "../features/cart/cartSlice";
 import { useNotify } from "../hook/useNotify";
-// ✅ IMPORTACIÓN DE LA LÓGICA DE HORARIO
 import { checkWingoolStatus } from "../Components/Common/verificarHorario";
 
 const ProductDetails = () => {
@@ -38,10 +37,12 @@ const ProductDetails = () => {
   const [selectedExtras, setSelectedExtras] = useState([]);
   const [mainImage, setMainImage] = useState("");
   
+  // Estado de respaldo para recomendados si Redux está vacío al recargar
+  const [fallbackProducts, setFallbackProducts] = useState([]);
+  
   const [selectedSalsa, setSelectedSalsa] = useState("");
   const [selectedSize, setSelectedSize] = useState(null);
   
-  // ESTADOS PARA CONFIGURACIONES ESPECIALES
   const [selectedSubCat, setSelectedSubCat] = useState(null);
   const [tipoMezcla, setTipoMezcla] = useState("SOLO"); 
   const [mezcladores, setMezcladores] = useState([]);
@@ -68,8 +69,7 @@ const ProductDetails = () => {
   };
 
   const PREPARACIONES_MICHELADA = {
-    LITRO: [{ nombre: 'Con Clamato', precio: 35 }, { nombre: 'Sin Clamato', precio: 30 }, { nombre: 'Chelada', precio: 30 }],
-    MEDIO: [{ nombre: 'Con Clamato', precio: 25 }, { nombre: 'Sin Clamato', precio: 20 }, { nombre: 'Chelada', precio: 20 }]
+    LITRO: [{ nombre: 'Con Clamato', precio: 35 }, { nombre: 'Chelada', precio: 30 }],
   };
 
   const MENU_POMOS = [
@@ -134,16 +134,34 @@ const ProductDetails = () => {
         setLoading(true);
         const { data, error } = await supabase.from("productos").select("*").eq("id", id).single();
         if (error) throw error;
-        if (data) { setLocalProduct(data); setMainImage(data.imagen_url || "/default-image.png"); }
+        if (data) { 
+          setLocalProduct(data); 
+          setMainImage(data.imagen_url || "/default-image.png"); 
+        }
+
+        // ✅ Lógica de Fallback: Si Redux está vacío al recargar, traemos recomendados de Supabase
+        if (products.length === 0) {
+          const { data: recs } = await supabase
+            .from("productos")
+            .select("*")
+            .neq("id", id)
+            .eq("disponible", true)
+            .limit(8);
+          if (recs) setFallbackProducts(recs);
+        }
       } catch (err) { console.error(err); } finally { setLoading(false); }
     };
     fetchProductData();
-  }, [id]);
+  }, [id, products.length]);
 
   const quickMenu = useMemo(() => {
-    if (!products.length) return [];
-    return products.filter((p) => String(p.id) !== String(id) && p.disponible !== false).sort(() => 0.5 - Math.random()).slice(0, 5);
-  }, [products, id]);
+    const source = products.length > 0 ? products : fallbackProducts;
+    if (!source.length) return [];
+    return source
+      .filter((p) => String(p.id) !== String(id) && p.disponible !== false)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 5);
+  }, [products, fallbackProducts, id]);
 
   const precioTotal = useMemo(() => {
     let base = 0;
@@ -181,7 +199,6 @@ const ProductDetails = () => {
   const removeMezcladorPomo = (index) => setMezcladores(prev => prev.filter((_, i) => i !== index));
 
   const addToCartHandler = () => {
-    // ✅ BLOQUEO DE SEGURIDAD POR HORARIO
     const { isClosed } = checkWingoolStatus();
     if (isClosed) {
       notify.error("🚨 Estadio en mantenimiento. No se permiten nuevas jugadas.");
@@ -250,7 +267,6 @@ const ProductDetails = () => {
               <p className="text-slate-400 font-bold italic text-xs md:text-sm">{localProduct?.descripcion}</p>
             </div>
 
-            {/* ✅ SECCIÓN DE IMPORTE PERSONALIZADO (Evita mostrar $0) */}
             <div className={`flex items-center justify-between p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group border transition-all ${esDisponible ? 'bg-[#1a2e05] border-white/5' : 'bg-red-50 border-red-200 shadow-[0_0_15px_rgba(239,68,68,0.1)]'}`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-[60px] opacity-10"></div>
               <div className="relative z-10 text-white">
@@ -262,7 +278,6 @@ const ProductDetails = () => {
               <Trophy size={32} className="relative z-10 text-emerald-500/10" />
             </div>
 
-            {/* ZONA DINÁMICA DE CERVEZAS */}
             {categoriaConfigurable === "CERVEZAS" && (
               <div className="space-y-8">
                 <div className="space-y-4">
@@ -290,7 +305,7 @@ const ProductDetails = () => {
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
                     <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><Droplets size={14} className="text-blue-500" /> 3. ¿Cómo la quieres?</h3>
                     <div className="grid grid-cols-1 gap-2">
-                      <button onClick={() => setEstiloMichelada(null)} className={`p-3 rounded-xl border-2 font-black text-[10px] italic transition-all ${!estiloMichelada ? "bg-[#1a2e05] text-white" : "bg-white text-slate-400"}`}>NATURAL (Sencilla)</button>
+                      <button onClick={() => setEstiloMichelada(null)} className={`p-3 rounded-xl border-2 font-black text-[10px] italic transition-all ${!estiloMichelada ? "bg-[#1a2e05] text-white" : "bg-white text-slate-400"}`}>NATURAL</button>
                       {PREPARACIONES_MICHELADA[selectedSubCat === "LITRO" ? "LITRO" : "MEDIO"].map((estilo) => (
                         <button key={estilo.nombre} onClick={() => setEstiloMichelada(estilo)} className={`p-3 rounded-xl border-2 flex justify-between items-center transition-all ${estiloMichelada?.nombre === estilo.nombre ? "bg-blue-500 border-blue-500 text-white" : "bg-white border-slate-100 text-slate-400"}`}>
                           <span className="text-[10px] font-black uppercase italic">{estilo.nombre}</span>
@@ -303,7 +318,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* ZONA DINÁMICA DE POMOS */}
             {categoriaConfigurable === "POMOS" && (
               <div className="space-y-8">
                 <div className="space-y-4">
@@ -339,7 +353,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* ZONA DINÁMICA DE COPEO */}
             {categoriaConfigurable === "COPEO" && (
               <div className="space-y-8">
                 <div className="space-y-4">
@@ -389,7 +402,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* SECCIÓN TAMAÑO: Alitas/Boneless */}
             {categoriaConfigurable && !["PAQUETES", "COPEO", "POMOS", "CERVEZAS"].includes(categoriaConfigurable) && (
               <div className="space-y-4 pt-4">
                 <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><Scaling size={14} className="text-emerald-500" /> 1. Elige tu Porción</h3>
@@ -404,7 +416,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* SECCIÓN SALSAS: Alitas/Boneless/Paquetes */}
             {categoriaConfigurable && !["COPEO", "POMOS", "CERVEZAS"].includes(categoriaConfigurable) && (
               <div className="space-y-4">
                 <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><Droplets size={14} className="text-orange-500" /> {categoriaConfigurable === "PAQUETES" ? "1. Baño de Sabor" : "2. Baño de Sabor"}</h3>
@@ -419,7 +430,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* EXTRAS */}
             {localProduct?.ingredientes && localProduct.ingredientes.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><ChefHat size={14} className="text-emerald-500" /> Personaliza</h3>
@@ -434,7 +444,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* RECOMENDADOS */}
             {quickMenu.length > 0 && (
               <div className="space-y-5 pt-8 border-t border-slate-100">
                   <h3 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2 italic"><ShoppingBag size={14} fill="currentColor" /> Platillos Recomendados</h3>

@@ -180,7 +180,6 @@ const OrderSummary = () => {
                 <MercadoPagoModal 
                     total={totalFinal} 
                     cartItems={cartItems}
-                    // ✅ LA CORRECCIÓN CLAVE: Enviamos el valor de descuento al modal
                     puntosUsados={descuentoPuntos}
                     userData={{
                         id: currentUser?.id,
@@ -277,8 +276,26 @@ const OrderSummary = () => {
 
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setMetodoPago("efectivo")} className={`p-4 rounded-[2rem] border-4 flex flex-col items-center gap-1 transition-all active:scale-95 ${metodoPago === "efectivo" ? "border-emerald-500 bg-emerald-50" : "border-slate-50 opacity-40"}`}><Wallet size={24} className={metodoPago === "efectivo" ? "text-emerald-500" : "text-slate-400"} /><span className="text-[9px] font-[1000] uppercase italic text-[#1a2e05]">Efectivo</span></button>
-                    <button onClick={() => setMetodoPago("tarjeta")} className={`p-4 rounded-[2rem] border-4 flex flex-col items-center gap-1 transition-all active:scale-95 ${metodoPago === "tarjeta" ? "border-emerald-500 bg-emerald-50" : "border-slate-50 opacity-40"}`}><CreditCard size={24} className={metodoPago === "tarjeta" ? "text-emerald-500" : "text-slate-400"} /><span className="text-[9px] font-[1000] uppercase italic text-[#1a2e05]">Tarjeta</span></button>
+                    <button 
+  onClick={() => setMetodoPago("efectivo")} 
+  className={`p-4 rounded-[2rem] border-4 flex flex-col items-center gap-1 transition-all active:scale-95 ${metodoPago === "efectivo" ? "border-emerald-500 bg-emerald-50" : "border-slate-50 opacity-40"}`}
+>
+  <Wallet size={24} className={metodoPago === "efectivo" ? "text-emerald-500" : "text-slate-400"} />
+  <span className="text-[9px] font-[1000] uppercase italic text-[#1a2e05] flex flex-col items-center">
+    Efectivo 
+    <span className="text-[7px] font-bold opacity-60 block mt-0.5 tracking-tighter">
+      (PAGO CONTRAENTREGA)
+    </span>
+  </span>
+</button>
+                    {/* ✅ BOTÓN SUSPENDIDO TEMPORALMENTE */}
+                    <button 
+                        onClick={() => toast.error("💳 Pago con tarjeta en mantenimiento. Por ahora solo efectivo.")} 
+                        className={`p-4 rounded-[2rem] border-4 flex flex-col items-center gap-1 transition-all opacity-40 cursor-not-allowed border-slate-50`}
+                    >
+                        <CreditCard size={24} className="text-slate-400" />
+                        <span className="text-[9px] font-[1000] uppercase italic text-slate-400">Tarjeta (Próximamente)</span>
+                    </button>
                 </div>
                 <button 
                     onClick={() => { 
@@ -289,13 +306,17 @@ const OrderSummary = () => {
                         if (usePoints && totalFinal <= 0) {
                            handlePedidoEfectivo();
                         } else {
-                           metodoPago === "tarjeta" ? setMostrarPasarela(true) : handlePedidoEfectivo(); 
+                           // Bloqueamos la apertura de pasarela si el método es tarjeta
+                           if (metodoPago === "tarjeta") {
+                             return toast.error("Método no disponible momentáneamente.");
+                           }
+                           handlePedidoEfectivo(); 
                         }
                     }} 
                     disabled={isLoading || cartItems.length === 0} 
                     className="w-full bg-[#1a2e05] text-white py-6 rounded-[2.5rem] font-[1000] uppercase italic flex items-center justify-center gap-4 transition-all hover:bg-emerald-600 shadow-xl active:scale-95 disabled:opacity-50"
                 >
-                    {isLoading ? <Loader2 className="animate-spin" size={24} /> : ( <> <Zap size={20} fill="currentColor" className="text-emerald-400" /> <span>{metodoPago === "tarjeta" && totalFinal > 0 ? "PAGAR JUGADA" : "CONFIRMAR PEDIDO"}</span> </> )}
+                    {isLoading ? <Loader2 className="animate-spin" size={24} /> : ( <> <Zap size={20} fill="currentColor" className="text-emerald-400" /> <span>CONFIRMAR PEDIDO</span> </> )}
                 </button>
             </div>
             {showAddressModal && ( <AddressModal onClose={() => setShowAddressModal(false)} onAddressAdded={(newAddr) => { setSavedAddresses(prev => [...prev, newAddr]); setSelectedAddress(newAddr); }} userId={currentUser?.id} /> )}
