@@ -293,7 +293,15 @@ const ProductDetails = () => {
                     <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><Scaling size={14} className="text-emerald-500" /> 2. Selecciona Marca</h3>
                     <div className="grid grid-cols-2 gap-3">
                       {MENU_CERVEZAS[selectedSubCat].map((cerveza) => (
-                        <button key={cerveza.nombre} onClick={() => setSelectedSize(cerveza)} className={`p-4 rounded-[1.5rem] border-2 flex justify-between items-center transition-all ${selectedSize?.nombre === cerveza.nombre ? "bg-emerald-500 border-emerald-500 text-[#1a2e05]" : "bg-white border-slate-100 text-slate-400"}`}>
+                        <button 
+                          key={cerveza.nombre} 
+                          onClick={() => setSelectedSize(cerveza)} 
+                          className={`p-4 rounded-[1.5rem] border-2 flex justify-between items-center transition-all ${
+                            selectedSize?.nombre === cerveza.nombre 
+                            ? "bg-emerald-500 border-emerald-500 text-[#1a2e05] shadow-lg" 
+                            : "bg-white border-slate-100 text-slate-400"
+                          }`}
+                        >
                           <span className="text-[10px] font-black uppercase italic">{cerveza.nombre}</span>
                           <span className="text-xs font-black italic">${cerveza.precio}</span>
                         </button>
@@ -306,8 +314,8 @@ const ProductDetails = () => {
                     <h3 className="text-[9px] font-black text-[#1a2e05] uppercase tracking-[0.3em] flex items-center gap-2 italic"><Droplets size={14} className="text-blue-500" /> 3. ¿Cómo la quieres?</h3>
                     <div className="grid grid-cols-1 gap-2">
                       <button onClick={() => setEstiloMichelada(null)} className={`p-3 rounded-xl border-2 font-black text-[10px] italic transition-all ${!estiloMichelada ? "bg-[#1a2e05] text-white" : "bg-white text-slate-400"}`}>NATURAL</button>
-                      {PREPARACIONES_MICHELADA[selectedSubCat === "LITRO" ? "LITRO" : "MEDIO"].map((estilo) => (
-                        <button key={estilo.nombre} onClick={() => setEstiloMichelada(estilo)} className={`p-3 rounded-xl border-2 flex justify-between items-center transition-all ${estiloMichelada?.nombre === estilo.nombre ? "bg-blue-500 border-blue-500 text-white" : "bg-white border-slate-100 text-slate-400"}`}>
+                      {PREPARACIONES_MICHELADA[selectedSubCat === "LITRO" ? "LITRO" : "MEDIO"]?.map((estilo) => (
+                        <button key={estilo.nombre} onClick={() => setEstiloMichelada(estilo)} className={`p-3 rounded-xl border-2 flex justify-between items-center transition-all ${estiloMichelada?.nombre === estilo.nombre ? "bg-blue-500 border-blue-500 text-white shadow-lg" : "bg-white border-slate-100 text-slate-400"}`}>
                           <span className="text-[10px] font-black uppercase italic">{estilo.nombre}</span>
                           <span className="text-xs font-black italic">+${estilo.precio}</span>
                         </button>
